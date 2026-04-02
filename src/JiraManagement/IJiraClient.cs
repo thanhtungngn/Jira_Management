@@ -4,6 +4,7 @@ namespace JiraManagement;
 
 public interface IJiraClient
 {
+    Task<JiraUser> GetCurrentUserAsync();
     Task<List<JiraProject>> GetProjectsAsync();
     Task<JiraProject> GetProjectAsync(string projectKey);
     Task<SearchResult> SearchIssuesAsync(SearchIssuesRequest request);

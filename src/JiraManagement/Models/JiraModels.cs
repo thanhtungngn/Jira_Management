@@ -177,3 +177,15 @@ public class SearchIssuesRequest
     public int MaxResults { get; set; } = 50;
     public int StartAt { get; set; } = 0;
 }
+
+public class TransitionRequest
+{
+    /// <summary>The target transition name (e.g. <c>In Progress</c>, <c>Done</c>).</summary>
+    public string TransitionName { get; set; } = string.Empty;
+}
+
+public class AddCommentRequest
+{
+    /// <summary>The plain-text body of the comment.</summary>
+    public string Text { get; set; } = string.Empty;
+}

@@ -3,21 +3,24 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using JiraManagement.Models;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace JiraManagement;
 
 public class JiraClient : IJiraClient
 {
     private readonly HttpClient _httpClient;
+    private readonly ILogger<JiraClient> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    public JiraClient(HttpClient httpClient)
+    public JiraClient(HttpClient httpClient, ILogger<JiraClient>? logger = null)
     {
         _httpClient = httpClient;
+        _logger = logger ?? NullLogger<JiraClient>.Instance;
     }
 
     public static JiraClient Create(string baseUrl, string email, string apiToken)
@@ -42,20 +45,37 @@ public class JiraClient : IJiraClient
         return new JiraClient(httpClient);
     }
 
+    public async Task<JiraUser> GetCurrentUserAsync()
+    {
+        _logger.LogDebug("Fetching current Jira user");
+        var response = await _httpClient.GetAsync("myself");
+        await EnsureSuccessAsync(response);
+        var user = await response.Content.ReadFromJsonAsync<JiraUser>(JsonOptions)
+               ?? throw new InvalidOperationException("Empty response from Jira.");
+        _logger.LogInformation("Authenticated as {DisplayName} ({Email})", user.DisplayName, user.EmailAddress);
+        return user;
+    }
+
     public async Task<List<JiraProject>> GetProjectsAsync()
     {
+        _logger.LogDebug("Fetching Jira projects");
         var response = await _httpClient.GetAsync("project/search?maxResults=50");
         await EnsureSuccessAsync(response);
         var result = await response.Content.ReadFromJsonAsync<PagedProjects>(JsonOptions);
-        return result?.Values ?? [];
+        var projects = result?.Values ?? [];
+        _logger.LogInformation("Retrieved {Count} projects", projects.Count);
+        return projects;
     }
 
     public async Task<JiraProject> GetProjectAsync(string projectKey)
     {
+        _logger.LogDebug("Fetching project {ProjectKey}", projectKey);
         var response = await _httpClient.GetAsync($"project/{Uri.EscapeDataString(projectKey)}");
         await EnsureSuccessAsync(response);
-        return await response.Content.ReadFromJsonAsync<JiraProject>(JsonOptions)
+        var project = await response.Content.ReadFromJsonAsync<JiraProject>(JsonOptions)
                ?? throw new InvalidOperationException("Empty response from Jira.");
+        _logger.LogInformation("Retrieved project {ProjectKey} ({ProjectName})", project.Key, project.Name);
+        return project;
     }
 
     public async Task<SearchResult> SearchIssuesAsync(SearchIssuesRequest request)
@@ -70,27 +90,35 @@ public class JiraClient : IJiraClient
             jqlParts.Add($"assignee = \"{request.AssigneeEmail}\"");
 
         var jql = string.Join(" AND ", jqlParts);
+        _logger.LogDebug("Searching issues with JQL: {Jql}", jql);
         var fields = "summary,status,issuetype,priority,assignee,reporter,created,updated";
         var url = $"search?jql={Uri.EscapeDataString(jql)}&maxResults={request.MaxResults}&startAt={request.StartAt}&fields={fields}";
 
         var response = await _httpClient.GetAsync(url);
         await EnsureSuccessAsync(response);
-        return await response.Content.ReadFromJsonAsync<SearchResult>(JsonOptions)
+        var result = await response.Content.ReadFromJsonAsync<SearchResult>(JsonOptions)
                ?? new SearchResult();
+        _logger.LogInformation("Found {Total} issues for project {ProjectKey} (returned {Count})",
+            result.Total, request.ProjectKey, result.Issues?.Count ?? 0);
+        return result;
     }
 
     public async Task<JiraIssue> GetIssueAsync(string issueKey)
     {
+        _logger.LogDebug("Fetching issue {IssueKey}", issueKey);
         var fields = "summary,description,status,issuetype,priority,assignee,reporter,created,updated,comment";
         var response = await _httpClient.GetAsync(
             $"issue/{Uri.EscapeDataString(issueKey)}?fields={fields}");
         await EnsureSuccessAsync(response);
-        return await response.Content.ReadFromJsonAsync<JiraIssue>(JsonOptions)
+        var issue = await response.Content.ReadFromJsonAsync<JiraIssue>(JsonOptions)
                ?? throw new InvalidOperationException("Empty response from Jira.");
+        _logger.LogInformation("Retrieved issue {IssueKey}", issue.Key);
+        return issue;
     }
 
     public async Task<JiraIssue> CreateIssueAsync(CreateIssueRequest request)
     {
+        _logger.LogDebug("Creating issue in project {ProjectKey}: {Summary}", request.ProjectKey, request.Summary);
         var fields = new Dictionary<string, object>
         {
             ["project"] = new { key = request.ProjectKey },
@@ -110,12 +138,15 @@ public class JiraClient : IJiraClient
         var body = new { fields };
         var response = await _httpClient.PostAsJsonAsync("issue", body, JsonOptions);
         await EnsureSuccessAsync(response);
-        return await response.Content.ReadFromJsonAsync<JiraIssue>(JsonOptions)
+        var issue = await response.Content.ReadFromJsonAsync<JiraIssue>(JsonOptions)
                ?? throw new InvalidOperationException("Empty response from Jira.");
+        _logger.LogInformation("Created issue {IssueKey} in project {ProjectKey}", issue.Key, request.ProjectKey);
+        return issue;
     }
 
     public async Task UpdateIssueAsync(string issueKey, UpdateIssueRequest request)
     {
+        _logger.LogDebug("Updating issue {IssueKey}", issueKey);
         var fields = new Dictionary<string, object>();
 
         if (request.Summary is not null)
@@ -131,18 +162,22 @@ public class JiraClient : IJiraClient
         var response = await _httpClient.PutAsJsonAsync(
             $"issue/{Uri.EscapeDataString(issueKey)}", body, JsonOptions);
         await EnsureSuccessAsync(response);
+        _logger.LogInformation("Updated issue {IssueKey}", issueKey);
     }
 
     public async Task AddCommentAsync(string issueKey, string comment)
     {
+        _logger.LogDebug("Adding comment to issue {IssueKey}", issueKey);
         var body = new { body = BuildAdf(comment) };
         var response = await _httpClient.PostAsJsonAsync(
             $"issue/{Uri.EscapeDataString(issueKey)}/comment", body, JsonOptions);
         await EnsureSuccessAsync(response);
+        _logger.LogInformation("Added comment to issue {IssueKey}", issueKey);
     }
 
     public async Task TransitionIssueAsync(string issueKey, string transitionName)
     {
+        _logger.LogDebug("Transitioning issue {IssueKey} to '{TransitionName}'", issueKey, transitionName);
         var transitionsResponse = await _httpClient.GetAsync(
             $"issue/{Uri.EscapeDataString(issueKey)}/transitions");
         await EnsureSuccessAsync(transitionsResponse);
@@ -164,6 +199,7 @@ public class JiraClient : IJiraClient
         var response = await _httpClient.PostAsJsonAsync(
             $"issue/{Uri.EscapeDataString(issueKey)}/transitions", body, JsonOptions);
         await EnsureSuccessAsync(response);
+        _logger.LogInformation("Transitioned issue {IssueKey} to '{TransitionName}'", issueKey, transitionName);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
