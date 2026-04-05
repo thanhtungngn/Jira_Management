@@ -1,7 +1,8 @@
-using JiraManagement.Models;
 using Microsoft.AspNetCore.Mvc;
+using ProjectManagement.Core.Jira;
+using ProjectManagement.Core.Jira.Models;
 
-namespace JiraManagement.Controllers;
+namespace ProjectManagement.Api.Controllers;
 
 /// <summary>Endpoints for browsing Jira projects.</summary>
 [ApiController]

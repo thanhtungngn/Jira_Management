@@ -2,10 +2,11 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using JiraManagement.Models;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using ProjectManagement.Core.Jira.Models;
 
-namespace JiraManagement;
+namespace ProjectManagement.Core.Jira;
 
 public class JiraClient : IJiraClient
 {

@@ -1,7 +1,8 @@
-using JiraManagement.Models;
 using Microsoft.AspNetCore.Mvc;
+using ProjectManagement.Core.Jira;
+using ProjectManagement.Core.Jira.Models;
 
-namespace JiraManagement.Controllers;
+namespace ProjectManagement.Api.Controllers;
 
 /// <summary>Verifies connectivity and authentication with the configured Jira instance.</summary>
 [ApiController]

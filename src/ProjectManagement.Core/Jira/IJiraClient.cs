@@ -1,6 +1,6 @@
-using JiraManagement.Models;
+using ProjectManagement.Core.Jira.Models;
 
-namespace JiraManagement;
+namespace ProjectManagement.Core.Jira;
 
 public interface IJiraClient
 {

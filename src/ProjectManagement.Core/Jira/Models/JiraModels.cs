@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace JiraManagement.Models;
+namespace ProjectManagement.Core.Jira.Models;
 
 public class JiraIssue
 {

@@ -1,12 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using JiraManagement;
-using JiraManagement.Models;
 using Moq;
 using Moq.Protected;
+using ProjectManagement.Core.Jira;
+using ProjectManagement.Core.Jira.Models;
 
-namespace JiraManagement.Tests;
+namespace ProjectManagement.Core.Tests.Jira;
 
 /// <summary>
 /// Unit tests for <see cref="JiraClient"/> that use a mocked <see cref="HttpMessageHandler"/>
@@ -207,13 +207,12 @@ public class JiraClientTests
 
         await client.SearchIssuesAsync(new SearchIssuesRequest
         {
-            ProjectKey = "PROJ",
-            Status = "In Progress",
-            IssueType = "Bug",
+            ProjectKey    = "PROJ",
+            Status        = "In Progress",
+            IssueType     = "Bug",
             AssigneeEmail = "dev@example.com",
         });
 
-        // Verify the URL built contains all JQL parts
         handlerMock.Protected().Verify(
             "SendAsync",
             Times.Once(),
@@ -277,8 +276,8 @@ public class JiraClientTests
         var issue = await client.CreateIssueAsync(new CreateIssueRequest
         {
             ProjectKey = "PROJ",
-            Summary = "New feature",
-            IssueType = "Story",
+            Summary    = "New feature",
+            IssueType  = "Story",
         });
 
         Assert.Equal("PROJ-2", issue.Key);
@@ -348,7 +347,6 @@ public class JiraClientTests
 
         await client.TransitionIssueAsync("PROJ-1", "In Progress");
 
-        // Should have made two calls: GET transitions, then POST transition
         handlerMock.Protected().Verify(
             "SendAsync",
             Times.Exactly(2),

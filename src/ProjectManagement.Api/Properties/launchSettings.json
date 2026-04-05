@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "JiraManagement": {
+    "ProjectManagement.Api": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
