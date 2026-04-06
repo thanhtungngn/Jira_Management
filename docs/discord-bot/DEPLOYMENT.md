@@ -60,12 +60,9 @@ docker build -f Dockerfile.discord -t pm-discord-bot .
 docker run -d \
   -e Discord__BotToken="YOUR_TOKEN" \
   -e Discord__GuildId="YOUR_GUILD_ID" \
-  -e Jira__BaseUrl="https://yourco.atlassian.net" \
-  -e Jira__Email="you@example.com" \
-  -e Jira__ApiToken="YOUR_JIRA_TOKEN" \
-  -e Trello__ApiKey="YOUR_TRELLO_KEY" \
-  -e Trello__Token="YOUR_TRELLO_TOKEN" \
-  -e GitHub__Token="YOUR_GITHUB_TOKEN" \
+  -e Ai__ApiKey="YOUR_OPENAI_API_KEY" \
+  -e Ai__Model="gpt-4o-mini" \
+  -e Ai__ApiBaseUrl="https://your-deployed-api.onrender.com" \
   --name pm-discord-bot \
   pm-discord-bot
 ```
@@ -83,12 +80,9 @@ Add to your existing `docker-compose.yml`:
     environment:
       - Discord__BotToken=${DISCORD_BOT_TOKEN}
       - Discord__GuildId=${DISCORD_GUILD_ID}
-      - Jira__BaseUrl=${JIRA_BASE_URL}
-      - Jira__Email=${JIRA_EMAIL}
-      - Jira__ApiToken=${JIRA_API_TOKEN}
-      - Trello__ApiKey=${TRELLO_API_KEY}
-      - Trello__Token=${TRELLO_TOKEN}
-      - GitHub__Token=${GITHUB_TOKEN}
+      - Ai__ApiKey=${AI_API_KEY}
+      - Ai__Model=${AI_MODEL:-gpt-4o-mini}
+      - Ai__ApiBaseUrl=${AI_API_BASE_URL}
 ```
 
 ---
@@ -105,12 +99,9 @@ Add to your existing `docker-compose.yml`:
 |---|---|
 | `Discord__BotToken` | Your bot token |
 | `Discord__GuildId` | *(optional)* Your server ID |
-| `Jira__BaseUrl` | `https://yourco.atlassian.net` |
-| `Jira__Email` | Your Jira email |
-| `Jira__ApiToken` | Your Jira API token |
-| `Trello__ApiKey` | Your Trello API key |
-| `Trello__Token` | Your Trello token |
-| `GitHub__Token` | Your GitHub PAT |
+| `Ai__ApiKey` | Your OpenAI API key |
+| `Ai__Model` | Model to use (e.g. `gpt-4o-mini`) |
+| `Ai__ApiBaseUrl` | Base URL of your deployed REST API |
 
 4. Deploy. Render will build and run the container.
 
@@ -153,10 +144,9 @@ az containerapp create \
   --image myregistry.azurecr.io/pm-discord-bot:latest \
   --env-vars \
     Discord__BotToken=secretref:discord-bot-token \
-    Jira__BaseUrl=https://yourco.atlassian.net \
-    Jira__Email=you@example.com \
-    Jira__ApiToken=secretref:jira-api-token \
-    GitHub__Token=secretref:github-token \
+    Ai__ApiKey=secretref:openai-api-key \
+    Ai__Model=gpt-4o-mini \
+    Ai__ApiBaseUrl=https://your-deployed-api.onrender.com \
   --min-replicas 1 \
   --max-replicas 1
 ```
@@ -185,10 +175,9 @@ ExecStart=/opt/pm-discord-bot/ProjectManagement.Discord
 Restart=always
 RestartSec=10
 Environment=Discord__BotToken=YOUR_TOKEN
-Environment=Jira__BaseUrl=https://yourco.atlassian.net
-Environment=Jira__Email=you@example.com
-Environment=Jira__ApiToken=YOUR_JIRA_TOKEN
-Environment=GitHub__Token=YOUR_GITHUB_TOKEN
+Environment=Ai__ApiKey=YOUR_OPENAI_API_KEY
+Environment=Ai__Model=gpt-4o-mini
+Environment=Ai__ApiBaseUrl=https://your-deployed-api.onrender.com
 
 [Install]
 WantedBy=multi-user.target
@@ -210,12 +199,9 @@ systemctl status pm-discord-bot
 |---|---|---|
 | `Discord__BotToken` | `Discord:BotToken` | ✅ Yes |
 | `Discord__GuildId` | `Discord:GuildId` | No (global commands if omitted) |
-| `Jira__BaseUrl` | `Jira:BaseUrl` | Only if using Jira commands |
-| `Jira__Email` | `Jira:Email` | Only if using Jira commands |
-| `Jira__ApiToken` | `Jira:ApiToken` | Only if using Jira commands |
-| `Trello__ApiKey` | `Trello:ApiKey` | Only if using Trello commands |
-| `Trello__Token` | `Trello:Token` | Only if using Trello commands |
-| `GitHub__Token` | `GitHub:Token` | Only if using GitHub commands |
+| `Ai__ApiKey` | `Ai:ApiKey` | ✅ Yes |
+| `Ai__Model` | `Ai:Model` | No (defaults to `gpt-4o-mini`) |
+| `Ai__ApiBaseUrl` | `Ai:ApiBaseUrl` | ✅ Yes |
 
 > **Security:** Never commit secrets to source control. Use environment variables, Docker secrets, or a secrets manager (Azure Key Vault, AWS Secrets Manager, HashiCorp Vault).
 

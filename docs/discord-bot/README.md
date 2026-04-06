@@ -19,13 +19,14 @@ A Discord bot that exposes **Jira**, **Trello**, and **GitHub** project manageme
 
 ## Features
 
-| Platform | Commands |
+| Capability | Description |
 |---|---|
-| **Jira** | Search issues, get issue detail, create issue, add comment, transition status, list projects |
+| **Natural language commands** | Type anything in plain English — the LLM understands your intent |
+| **Jira** | Search issues, get issue details, create issues, add comments, transition status, list projects |
 | **GitHub** | List repositories, get repository, list issues, get issue |
 | **Trello** | List boards, get board, list cards, get card, create card |
 
-All responses are formatted as **Discord Embeds** with colour-coded results.
+Users interact through a single `/ask <prompt>` slash command. The bot forwards the prompt to an OpenAI LLM which selects and calls the appropriate tool functions against your deployed REST API.
 
 ---
 
@@ -51,17 +52,10 @@ Copy `appsettings.example.json` to `appsettings.json` (or use environment variab
     "BotToken": "YOUR_DISCORD_BOT_TOKEN_HERE",
     "GuildId": null
   },
-  "Jira": {
-    "BaseUrl": "https://yourcompany.atlassian.net",
-    "Email": "your-email@example.com",
-    "ApiToken": "your-jira-api-token"
-  },
-  "Trello": {
-    "ApiKey": "your-trello-api-key",
-    "Token": "your-trello-oauth-token"
-  },
-  "GitHub": {
-    "Token": "your-github-personal-access-token"
+  "Ai": {
+    "ApiKey": "YOUR_OPENAI_API_KEY_HERE",
+    "Model": "gpt-4o-mini",
+    "ApiBaseUrl": "https://your-deployed-api.onrender.com"
   }
 }
 ```
@@ -81,18 +75,13 @@ Leave it `null` for global commands (up to 1-hour propagation delay).
 
 To find your server ID: enable Developer Mode in Discord settings, then right-click your server → **Copy Server ID**.
 
-#### Jira API Token
-1. Go to [id.atlassian.com/manage-profile/security/api-tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
-2. Click **Create API token**
+#### OpenAI API Key
+1. Go to [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+2. Click **Create new secret key**
 
-#### Trello API Key and Token
-1. Go to [trello.com/app-key](https://trello.com/app-key)
-2. Copy the **API Key**
-3. Click the **Token** link to generate a token
-
-#### GitHub Personal Access Token
-1. Go to [github.com/settings/tokens](https://github.com/settings/tokens)
-2. Generate a **classic** token with `repo`, `read:org` scopes (or a fine-grained token)
+#### Deployed API Base URL
+Set `Ai:ApiBaseUrl` to the base URL of your already-deployed Project Management REST API  
+(e.g. `https://yourapp.onrender.com`). The bot uses this URL to call Jira, GitHub, and Trello operations via the LLM's tool functions.
 
 ---
 
@@ -124,37 +113,29 @@ info: ProjectManagement.Discord.Bot.InteractionHandler[0]
 
 ## Available Commands
 
-All commands use Discord slash-command syntax (`/group subcommand [args]`).
+The bot exposes a single slash command that accepts natural language prompts.
 
-### `/jira` — Jira commands
+### `/ask` — AI assistant
 
-| Command | Parameters | Description |
+| Parameter | Required | Description |
 |---|---|---|
-| `/jira search` | `project_key` *(required)*, `status`, `issue_type` | Search issues with optional filters |
-| `/jira get` | `issue_key` *(required)* | Get full details of an issue |
-| `/jira create` | `project_key`, `summary` *(required)*, `issue_type`, `description`, `priority` | Create a new issue |
-| `/jira comment` | `issue_key`, `text` *(required)* | Add a comment to an issue |
-| `/jira transition` | `issue_key`, `transition_name` *(required)* | Move an issue to a new status |
-| `/jira projects` | *(none)* | List all accessible projects |
+| `prompt` | ✅ Yes | Your question or command in plain English |
 
-### `/github` — GitHub commands
+#### Example prompts
 
-| Command | Parameters | Description |
-|---|---|---|
-| `/github repos` | *(none)* | List your repositories |
-| `/github repo` | `owner`, `name` *(required)* | Get details of a repository |
-| `/github issues` | `owner`, `repo` *(required)*, `state` (default: open) | List issues |
-| `/github issue` | `owner`, `repo`, `number` *(required)* | Get details of an issue |
+```
+/ask Show all open bugs in the PROJ project
+/ask Create a high-priority task called "Fix login page" in project PROJ
+/ask Get details for issue PROJ-42
+/ask Transition PROJ-7 to Done
+/ask List all my GitHub repositories
+/ask Show open issues for owner/my-repo
+/ask What boards do I have in Trello?
+/ask List the cards on board abc123
+/ask Create a card called "Design mockup" in Trello list xyz456
+```
 
-### `/trello` — Trello commands
-
-| Command | Parameters | Description |
-|---|---|---|
-| `/trello boards` | *(none)* | List your boards |
-| `/trello board` | `board_id` *(required)* | Get details of a board |
-| `/trello cards` | `board_id` *(required)* | List cards on a board |
-| `/trello card` | `card_id` *(required)* | Get details of a card |
-| `/trello create-card` | `list_id`, `name` *(required)*, `description` | Create a new card |
+The LLM interprets your intent, calls the appropriate tool(s) against the deployed REST API, and returns a human-readable response.
 
 ---
 
