@@ -2,90 +2,60 @@
 # Deploy with: connect this repo in the Render dashboard and select "Blueprint"
 
 services:
+  # ── REST API ─────────────────────────────────────────────────────────────────
   - type: web
     name: project-management-api
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
-
-    # Scale / instance
-    plan: free           # change to "starter" or higher for production
-    region: oregon       # oregon | frankfurt | singapore | ohio
-
+    plan: free
+    region: oregon
     healthCheckPath: /api/health
-
     envVars:
-      # ── ASP.NET Core ──────────────────────────────────────────────────────────
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
-
-      - key: ASPNETCORE_HTTP_PORTS
+      - key: ASPNETCORE_HTTP_PORTS  # Render injects PORT=10000; this binds the app to it
         value: "10000"
-
-      # ── Jira (fill in via Render dashboard or set sync: false) ────────────────
       - key: Jira__BaseUrl
-        sync: false          # mark sensitive — set value in Render dashboard
-
+        sync: false
       - key: Jira__Email
         sync: false
-
       - key: Jira__ApiToken
         sync: false
-
-      # ── Trello ────────────────────────────────────────────────────────────────
       - key: Trello__ApiKey
         sync: false
-
       - key: Trello__Token
         sync: false
-
-      # ── GitHub ────────────────────────────────────────────────────────────────
       - key: GitHub__Token
         sync: false
-
       - key: GitHub__UserAgent
         value: ProjectManagement/1.0
 
+  # ── MCP Server ───────────────────────────────────────────────────────────────
   - type: web
     name: project-management-mcp
     runtime: docker
     dockerfilePath: ./Dockerfile.mcp
     dockerContext: .
-
-    # Scale / instance
-    plan: free           # change to "starter" or higher for production
-    region: oregon       # oregon | frankfurt | singapore | ohio
-
+    plan: free
+    region: oregon
     healthCheckPath: /health
-
     envVars:
-      # ── ASP.NET Core ──────────────────────────────────────────────────────────
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
-
       - key: ASPNETCORE_HTTP_PORTS
         value: "10000"
-
-      # ── Jira ──────────────────────────────────────────────────────────────────
       - key: Jira__BaseUrl
-        sync: false          # mark sensitive — set value in Render dashboard
-
+        sync: false
       - key: Jira__Email
         sync: false
-
       - key: Jira__ApiToken
         sync: false
-
-      # ── Trello ────────────────────────────────────────────────────────────────
       - key: Trello__ApiKey
         sync: false
-
       - key: Trello__Token
         sync: false
-
-      # ── GitHub ────────────────────────────────────────────────────────────────
       - key: GitHub__Token
         sync: false
-
       - key: GitHub__UserAgent
         value: ProjectManagement/1.0
