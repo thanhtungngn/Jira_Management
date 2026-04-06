@@ -45,3 +45,38 @@ services:
 
       - key: GitHub__UserAgent
         value: ProjectManagement/1.0
+
+  - type: worker
+    name: project-management-mcp
+    runtime: docker
+    dockerfilePath: ./Dockerfile.mcp
+    dockerContext: .
+
+    # Scale / instance
+    plan: free           # change to "starter" or higher for production
+    region: oregon       # oregon | frankfurt | singapore | ohio
+
+    envVars:
+      # ── Jira ──────────────────────────────────────────────────────────────────
+      - key: Jira__BaseUrl
+        sync: false          # mark sensitive — set value in Render dashboard
+
+      - key: Jira__Email
+        sync: false
+
+      - key: Jira__ApiToken
+        sync: false
+
+      # ── Trello ────────────────────────────────────────────────────────────────
+      - key: Trello__ApiKey
+        sync: false
+
+      - key: Trello__Token
+        sync: false
+
+      # ── GitHub ────────────────────────────────────────────────────────────────
+      - key: GitHub__Token
+        sync: false
+
+      - key: GitHub__UserAgent
+        value: ProjectManagement/1.0
