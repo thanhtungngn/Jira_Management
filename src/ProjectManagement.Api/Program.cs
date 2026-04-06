@@ -1,52 +1,31 @@
-using System.Net.Http.Headers;
 using System.Reflection;
-using System.Text;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.OpenApi.Models;
-using ProjectManagement.Core.Jira;
+using Microsoft.OpenApi;
+using ProjectManagement.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── Jira credentials ──────────────────────────────────────────────────────────
-var baseUrl  = builder.Configuration["JIRA_BASE_URL"]  ?? string.Empty;
-var email    = builder.Configuration["JIRA_EMAIL"]     ?? string.Empty;
-var apiToken = builder.Configuration["JIRA_API_TOKEN"] ?? string.Empty;
-
-if (string.IsNullOrWhiteSpace(baseUrl) ||
-    string.IsNullOrWhiteSpace(email)   ||
-    string.IsNullOrWhiteSpace(apiToken))
-{
-    throw new InvalidOperationException(
-        "Missing Jira credentials. " +
-        "Set JIRA_BASE_URL, JIRA_EMAIL, and JIRA_API_TOKEN " +
-        "in appsettings.json or as environment variables.");
-}
-
 // ── Services ──────────────────────────────────────────────────────────────────
+builder.Services.AddControllers();
+
+// Register all three API clients via IConfiguration-based options
+builder.Services
+    .AddJiraClient(builder.Configuration)
+    .AddTrelloClient(builder.Configuration)
+    .AddGitHubClient(builder.Configuration);
+
 var appVersion = Assembly.GetExecutingAssembly()
     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
     ?.InformationalVersion ?? "1.0.0";
 
-builder.Services.AddControllers();
-
-builder.Services.AddHttpClient<IJiraClient, JiraClient>(client =>
-{
-    var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{email}:{apiToken}"));
-    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/rest/api/3/");
-    client.DefaultRequestHeaders.Authorization =
-        new AuthenticationHeaderValue("Basic", credentials);
-    client.DefaultRequestHeaders.Accept.Add(
-        new MediaTypeWithQualityHeaderValue("application/json"));
-});
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
     {
         Title       = "Project Management API",
         Version     = $"v{appVersion}",
-        Description = "REST API for managing Jira projects and issues.",
+        Description = "REST API for managing Jira, Trello, and GitHub resources.",
     });
 
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
@@ -98,3 +77,6 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Make the implicit Program class accessible to the integration test project
+public partial class Program { }
