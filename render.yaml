@@ -8,9 +8,6 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
 
-    # Render routes external HTTPS → internal HTTP on port 10000
-    port: 10000
-
     # Scale / instance
     plan: free           # change to "starter" or higher for production
     region: oregon       # oregon | frankfurt | singapore | ohio
