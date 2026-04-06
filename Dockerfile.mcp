@@ -1,0 +1,25 @@
+# ── Build stage ────────────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /repo
+
+# Copy project files first so the restore layer is cached independently
+COPY src/ProjectManagement.Core/ProjectManagement.Core.csproj   src/ProjectManagement.Core/
+COPY src/ProjectManagement.Mcp/ProjectManagement.Mcp.csproj     src/ProjectManagement.Mcp/
+
+RUN dotnet restore src/ProjectManagement.Mcp/ProjectManagement.Mcp.csproj
+
+# Copy the full source and publish
+COPY src/ProjectManagement.Core/ src/ProjectManagement.Core/
+COPY src/ProjectManagement.Mcp/  src/ProjectManagement.Mcp/
+RUN dotnet publish src/ProjectManagement.Mcp/ProjectManagement.Mcp.csproj \
+    --configuration Release \
+    --output /app/publish \
+    --no-restore
+
+# ── Runtime stage ──────────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime
+WORKDIR /app
+
+COPY --from=build /app/publish .
+
+ENTRYPOINT ["dotnet", "ProjectManagement.Mcp.dll"]
