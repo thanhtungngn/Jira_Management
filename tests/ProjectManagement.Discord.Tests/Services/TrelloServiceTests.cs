@@ -56,7 +56,7 @@ public class TrelloServiceTests
     public async Task GetBoardsAsync_OnException_ReturnsErrorEmbed()
     {
         var (svc, mock) = CreateService();
-        mock.Setup(c => c.GetBoardsAsync()).ThrowsAsync(new Exception("unauthorised"));
+        mock.Setup(c => c.GetBoardsAsync()).ThrowsAsync(new Exception("unauthorized"));
 
         var embed = await svc.GetBoardsAsync();
 

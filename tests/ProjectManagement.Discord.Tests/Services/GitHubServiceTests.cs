@@ -56,7 +56,7 @@ public class GitHubServiceTests
     public async Task ListRepositoriesAsync_OnException_ReturnsErrorEmbed()
     {
         var (svc, mock) = CreateService();
-        mock.Setup(c => c.ListRepositoriesAsync()).ThrowsAsync(new Exception("unauthorised"));
+        mock.Setup(c => c.ListRepositoriesAsync()).ThrowsAsync(new Exception("unauthorized"));
 
         var embed = await svc.ListRepositoriesAsync();
 
