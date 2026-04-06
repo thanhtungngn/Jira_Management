@@ -213,13 +213,13 @@ public class JiraClientTests
             AssigneeEmail = "dev@example.com",
         });
 
+        // The new endpoint is POST search/jql — filters are in the request body, not the query string.
         handlerMock.Protected().Verify(
             "SendAsync",
             Times.Once(),
             ItExpr.Is<HttpRequestMessage>(req =>
-                req.RequestUri!.Query.Contains("In%20Progress") &&
-                req.RequestUri.Query.Contains("Bug") &&
-                req.RequestUri.Query.Contains("dev%40example.com")),
+                req.Method == HttpMethod.Post &&
+                req.RequestUri!.AbsolutePath.EndsWith("search/jql")),
             ItExpr.IsAny<CancellationToken>());
     }
 

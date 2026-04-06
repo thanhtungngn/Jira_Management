@@ -92,10 +92,19 @@ public class JiraClient : IJiraClient
 
         var jql = string.Join(" AND ", jqlParts);
         _logger.LogDebug("Searching issues with JQL: {Jql}", jql);
-        var fields = "summary,status,issuetype,priority,assignee,reporter,created,updated";
-        var url = $"search?jql={Uri.EscapeDataString(jql)}&maxResults={request.MaxResults}&startAt={request.StartAt}&fields={fields}";
 
-        var response = await _httpClient.GetAsync(url);
+        // GET /rest/api/3/search was removed (410 Gone).
+        // Use POST /rest/api/3/search/jql per Atlassian changelog CHANGE-2046.
+        var body = new
+        {
+            jql,
+            maxResults = request.MaxResults,
+            startAt    = request.StartAt,
+            fields     = new[] { "summary", "status", "issuetype", "priority",
+                                 "assignee", "reporter", "created", "updated" },
+        };
+
+        var response = await _httpClient.PostAsJsonAsync("search/jql", body, JsonOptions);
         await EnsureSuccessAsync(response);
         var result = await response.Content.ReadFromJsonAsync<SearchResult>(JsonOptions)
                ?? new SearchResult();
