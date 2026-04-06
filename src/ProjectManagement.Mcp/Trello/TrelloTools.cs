@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
 using ProjectManagement.Core.Trello;
 using ProjectManagement.Core.Trello.Models;
@@ -9,39 +10,46 @@ namespace ProjectManagement.Mcp.Trello;
 public sealed class TrelloTools
 {
     private readonly ITrelloClient _client;
+    private readonly ILogger<TrelloTools> _logger;
 
-    public TrelloTools(ITrelloClient client)
+    public TrelloTools(ITrelloClient client, ILogger<TrelloTools> logger)
     {
         _client = client;
+        _logger = logger;
     }
 
     [McpServerTool(Name = "get_boards"), Description("List all Trello boards accessible by the authenticated user.")]
     public async Task<List<TrelloBoard>> GetBoardsAsync()
     {
+        _logger.LogInformation("[MCP] get_boards");
         return await _client.GetBoardsAsync();
     }
 
     [McpServerTool(Name = "get_board"), Description("Get details of a specific Trello board by its ID.")]
     public async Task<TrelloBoard> GetBoardAsync(string boardId)
     {
+        _logger.LogInformation("[MCP] get_board: {BoardId}", boardId);
         return await _client.GetBoardAsync(boardId);
     }
 
     [McpServerTool(Name = "get_lists"), Description("Get all lists on a Trello board.")]
     public async Task<List<TrelloList>> GetListsAsync(string boardId)
     {
+        _logger.LogInformation("[MCP] get_lists: {BoardId}", boardId);
         return await _client.GetListsAsync(boardId);
     }
 
     [McpServerTool(Name = "get_cards"), Description("Get all cards on a Trello board.")]
     public async Task<List<TrelloCard>> GetCardsAsync(string boardId)
     {
+        _logger.LogInformation("[MCP] get_cards: {BoardId}", boardId);
         return await _client.GetCardsAsync(boardId);
     }
 
     [McpServerTool(Name = "get_card"), Description("Get details of a specific Trello card by its ID.")]
     public async Task<TrelloCard> GetCardAsync(string cardId)
     {
+        _logger.LogInformation("[MCP] get_card: {CardId}", cardId);
         return await _client.GetCardAsync(cardId);
     }
 
@@ -52,6 +60,7 @@ public sealed class TrelloTools
         string? desc = null,
         DateTime? due = null)
     {
+        _logger.LogInformation("[MCP] create_card: list={ListId} name={Name}", idList, name);
         return await _client.CreateCardAsync(new CreateCardRequest
         {
             IdList = idList,
@@ -70,6 +79,7 @@ public sealed class TrelloTools
         DateTime? due = null,
         bool? closed = null)
     {
+        _logger.LogInformation("[MCP] update_card: {CardId}", cardId);
         return await _client.UpdateCardAsync(cardId, new UpdateCardRequest
         {
             Name   = name,
@@ -83,6 +93,7 @@ public sealed class TrelloTools
     [McpServerTool(Name = "delete_card"), Description("Permanently delete a Trello card.")]
     public async Task DeleteCardAsync(string cardId)
     {
+        _logger.LogInformation("[MCP] delete_card: {CardId}", cardId);
         await _client.DeleteCardAsync(cardId);
     }
 }

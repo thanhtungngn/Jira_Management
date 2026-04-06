@@ -1,0 +1,27 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches:
+      - main
+
+# Only one deployment runs at a time; a new push cancels an in-progress one.
+concurrency:
+  group: deploy-render
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Trigger Render Deploy
+    runs-on: ubuntu-latest
+    needs: []          # add "build-and-test" here to gate on CI passing
+
+    steps:
+      - name: Trigger Render deploy hook
+        # Store your Render deploy hook URL as a repository secret:
+        #   Settings → Secrets → Actions → RENDER_DEPLOY_HOOK_URL
+        # Get the URL from: Render dashboard → Service → Settings → Deploy Hook
+        run: |
+          curl --silent --fail-with-body \
+            --request POST \
+            "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"

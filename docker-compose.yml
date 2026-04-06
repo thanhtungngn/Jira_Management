@@ -1,0 +1,37 @@
+# Local development only — mirrors the Render production environment.
+# Copy appsettings.example.json → .env.local and fill in credentials,
+# then run:  docker compose --env-file .env.local up --build
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: project-management-api:local
+    container_name: pm-api
+    ports:
+      - "10000:10000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "10000"
+
+      # ── Jira ──────────────────────────────────────────────────────────────────
+      Jira__BaseUrl:  ${JIRA_BASE_URL}
+      Jira__Email:    ${JIRA_EMAIL}
+      Jira__ApiToken: ${JIRA_API_TOKEN}
+
+      # ── Trello ────────────────────────────────────────────────────────────────
+      Trello__ApiKey: ${TRELLO_API_KEY}
+      Trello__Token:  ${TRELLO_TOKEN}
+
+      # ── GitHub ────────────────────────────────────────────────────────────────
+      GitHub__Token:     ${GITHUB_TOKEN}
+      GitHub__UserAgent: ProjectManagement/1.0
+
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:10000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

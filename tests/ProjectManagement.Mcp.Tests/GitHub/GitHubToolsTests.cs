@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using ProjectManagement.Core.GitHub;
 using ProjectManagement.Core.GitHub.Models;
@@ -12,7 +13,7 @@ public class GitHubToolsTests
 
     public GitHubToolsTests()
     {
-        _tools = new GitHubTools(_clientMock.Object);
+        _tools = new GitHubTools(_clientMock.Object, NullLogger<GitHubTools>.Instance);
     }
 
     [Fact]

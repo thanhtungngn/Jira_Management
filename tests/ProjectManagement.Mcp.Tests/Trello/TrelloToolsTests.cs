@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using ProjectManagement.Core.Trello;
 using ProjectManagement.Core.Trello.Models;
@@ -12,7 +13,7 @@ public class TrelloToolsTests
 
     public TrelloToolsTests()
     {
-        _tools = new TrelloTools(_clientMock.Object);
+        _tools = new TrelloTools(_clientMock.Object, NullLogger<TrelloTools>.Instance);
     }
 
     [Fact]

@@ -72,7 +72,12 @@ app.UseExceptionHandler(exApp => exApp.Run(async context =>
     });
 }));
 
-app.UseHttpsRedirection();
+// Render (and most reverse proxies) terminate TLS at the edge and forward
+// plain HTTP to the container, so HTTPS redirect is only needed locally.
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseAuthorization();
 app.MapControllers();
 

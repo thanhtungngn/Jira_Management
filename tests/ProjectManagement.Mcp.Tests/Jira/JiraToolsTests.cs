@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using ProjectManagement.Core.Jira;
 using ProjectManagement.Core.Jira.Models;
@@ -12,7 +13,7 @@ public class JiraToolsTests
 
     public JiraToolsTests()
     {
-        _tools = new JiraTools(_clientMock.Object);
+        _tools = new JiraTools(_clientMock.Object, NullLogger<JiraTools>.Instance);
     }
 
     [Fact]
