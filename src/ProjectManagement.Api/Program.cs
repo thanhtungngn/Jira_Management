@@ -28,6 +28,12 @@ builder.Services.AddSwaggerGen(options =>
         Description = "REST API for managing Jira, Trello, and GitHub resources.",
     });
 
+    // Use fully-qualified type names as schema IDs to avoid collisions between
+    // same-named request/response types in different namespaces
+    // (e.g. Jira.Models.CreateIssueRequest vs GitHub.Models.CreateIssueRequest).
+    options.CustomSchemaIds(type =>
+        type.FullName?.Replace("+", ".") ?? type.Name);
+
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     options.IncludeXmlComments(xmlPath);
