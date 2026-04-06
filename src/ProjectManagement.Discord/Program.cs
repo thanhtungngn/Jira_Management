@@ -1,14 +1,16 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ProjectManagement.Core;
+using OpenAI.Chat;
 using ProjectManagement.Discord.Bot;
 using ProjectManagement.Discord.Options;
 using ProjectManagement.Discord.Services;
+using System.ClientModel;
 
 // ── Host ──────────────────────────────────────────────────────────────────────
 var host = Host.CreateDefaultBuilder(args)
@@ -46,6 +48,22 @@ var host = Host.CreateDefaultBuilder(args)
             }
         });
 
+        // ── AI options ───────────────────────────────────────────────────────
+        services.Configure<AiOptions>(opts =>
+        {
+            var section = config.GetSection(AiOptions.SectionName);
+            if (section.Exists())
+            {
+                section.Bind(opts);
+            }
+            else
+            {
+                opts.ApiKey     = config["AI_API_KEY"]      ?? string.Empty;
+                opts.Model      = config["AI_MODEL"]        ?? opts.Model;
+                opts.ApiBaseUrl = config["AI_API_BASE_URL"] ?? string.Empty;
+            }
+        });
+
         // ── Discord.Net clients ──────────────────────────────────────────────
         var socketConfig = new DiscordSocketConfig
         {
@@ -55,9 +73,9 @@ var host = Host.CreateDefaultBuilder(args)
 
         var interactionConfig = new InteractionServiceConfig
         {
-            LogLevel             = LogSeverity.Info,
-            DefaultRunMode       = RunMode.Async,
-            UseCompiledLambda    = true,
+            LogLevel          = LogSeverity.Info,
+            DefaultRunMode    = RunMode.Async,
+            UseCompiledLambda = true,
         };
 
         services.AddSingleton(socketConfig);
@@ -68,15 +86,27 @@ var host = Host.CreateDefaultBuilder(args)
         // ── Interaction handler ──────────────────────────────────────────────
         services.AddSingleton<InteractionHandler>();
 
-        // ── Project Management Core clients ──────────────────────────────────
-        services.AddJiraClient(config);
-        services.AddTrelloClient(config);
-        services.AddGitHubClient(config);
+        // ── OpenAI chat client (with automatic function invocation) ──────────
+        services.AddSingleton<IChatClient>(sp =>
+        {
+            var aiOpts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiOptions>>().Value;
+            return new ChatClient(aiOpts.Model, new ApiKeyCredential(aiOpts.ApiKey))
+                .AsIChatClient()
+                .AsBuilder()
+                .UseFunctionInvocation()
+                .Build(sp);
+        });
 
-        // ── Discord command services (business logic) ─────────────────────────
-        services.AddScoped<IJiraService, JiraService>();
-        services.AddScoped<IGitHubService, GitHubService>();
-        services.AddScoped<ITrelloService, TrelloService>();
+        // ── Named HttpClient pointing at the deployed REST API ───────────────
+        services.AddHttpClient(nameof(LlmChatService), (sp, client) =>
+        {
+            var aiOpts  = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<AiOptions>>().Value;
+            var baseUrl = aiOpts.ApiBaseUrl.TrimEnd('/') + '/';
+            client.BaseAddress = new Uri(baseUrl);
+        });
+
+        // ── LLM chat service ─────────────────────────────────────────────────
+        services.AddScoped<ILlmChatService, LlmChatService>();
 
         // ── Background service that manages the bot lifecycle ────────────────
         services.AddHostedService<DiscordBotService>();

@@ -22,11 +22,9 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.5" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Shared Jira, Trello and GitHub clients -->
-    <ProjectReference Include="..\ProjectManagement.Core\ProjectManagement.Core.csproj" />
+    <!-- LLM integration: Microsoft.Extensions.AI abstraction + OpenAI provider -->
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.4.1" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.4.1" />
   </ItemGroup>
 
   <ItemGroup>
