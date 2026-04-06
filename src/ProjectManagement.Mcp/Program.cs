@@ -1,12 +1,9 @@
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using ProjectManagement.Core;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 // appsettings.json and environment variables are loaded automatically
-// by Host.CreateApplicationBuilder. AddEnvironmentVariables() is also
-// included by default, so no manual configuration setup is needed.
+// by WebApplication.CreateBuilder.
 
 // Register all three clients via IConfiguration-based options
 builder.Services
@@ -17,7 +14,12 @@ builder.Services
 // ── MCP server ────────────────────────────────────────────────────────────────
 builder.Services
     .AddMcpServer()
-    .WithStdioServerTransport()
+    .WithHttpTransport()
     .WithToolsFromAssembly();
 
-await builder.Build().RunAsync();
+var app = builder.Build();
+
+app.MapGet("/health", () => Results.Ok());
+app.MapMcp("/mcp");
+
+await app.RunAsync();

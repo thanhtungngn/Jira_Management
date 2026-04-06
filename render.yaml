@@ -46,7 +46,7 @@ services:
       - key: GitHub__UserAgent
         value: ProjectManagement/1.0
 
-  - type: worker
+  - type: web
     name: project-management-mcp
     runtime: docker
     dockerfilePath: ./Dockerfile.mcp
@@ -56,7 +56,16 @@ services:
     plan: free           # change to "starter" or higher for production
     region: oregon       # oregon | frankfurt | singapore | ohio
 
+    healthCheckPath: /health
+
     envVars:
+      # ── ASP.NET Core ──────────────────────────────────────────────────────────
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "10000"
+
       # ── Jira ──────────────────────────────────────────────────────────────────
       - key: Jira__BaseUrl
         sync: false          # mark sensitive — set value in Render dashboard

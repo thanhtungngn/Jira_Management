@@ -17,9 +17,11 @@ RUN dotnet publish src/ProjectManagement.Mcp/ProjectManagement.Mcp.csproj \
     --no-restore
 
 # ── Runtime stage ──────────────────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 COPY --from=build /app/publish .
+
+EXPOSE 10000
 
 ENTRYPOINT ["dotnet", "ProjectManagement.Mcp.dll"]
