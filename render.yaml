@@ -2,60 +2,24 @@
 # Deploy with: connect this repo in the Render dashboard and select "Blueprint"
 
 services:
-  # ── REST API ─────────────────────────────────────────────────────────────────
-  - type: web
-    name: project-management-api
+  # ── Discord Bot ───────────────────────────────────────────────────────────────
+  - type: worker
+    name: pm-discord-bot
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: free
     region: oregon
-    healthCheckPath: /api/health
     envVars:
-      - key: ASPNETCORE_ENVIRONMENT
+      - key: DOTNET_ENVIRONMENT
         value: Production
-      - key: ASPNETCORE_HTTP_PORTS  # Render injects PORT=10000; this binds the app to it
-        value: "10000"
-      - key: Jira__BaseUrl
+      - key: Discord__BotToken
         sync: false
-      - key: Jira__Email
+      - key: Discord__GuildId
         sync: false
-      - key: Jira__ApiToken
+      - key: Ai__ApiKey
         sync: false
-      - key: Trello__ApiKey
+      - key: Ai__Model
+        value: gpt-4o-mini
+      - key: Ai__ApiBaseUrl
         sync: false
-      - key: Trello__Token
-        sync: false
-      - key: GitHub__Token
-        sync: false
-      - key: GitHub__UserAgent
-        value: ProjectManagement/1.0
-
-  # ── MCP Server ───────────────────────────────────────────────────────────────
-  - type: web
-    name: project-management-mcp
-    runtime: docker
-    dockerfilePath: ./Dockerfile.mcp
-    dockerContext: .
-    plan: free
-    region: oregon
-    healthCheckPath: /health
-    envVars:
-      - key: ASPNETCORE_ENVIRONMENT
-        value: Production
-      - key: ASPNETCORE_HTTP_PORTS
-        value: "10000"
-      - key: Jira__BaseUrl
-        sync: false
-      - key: Jira__Email
-        sync: false
-      - key: Jira__ApiToken
-        sync: false
-      - key: Trello__ApiKey
-        sync: false
-      - key: Trello__Token
-        sync: false
-      - key: GitHub__Token
-        sync: false
-      - key: GitHub__UserAgent
-        value: ProjectManagement/1.0

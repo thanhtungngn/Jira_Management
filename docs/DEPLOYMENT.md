@@ -36,7 +36,7 @@ dotnet run --project src/ProjectManagement.Discord
 
 ### Build the image
 
-A `Dockerfile.discord` is provided at the repository root.
+A `Dockerfile` is provided at the repository root.
 
 ```dockerfile
 # syntax=docker/dockerfile:1
@@ -54,7 +54,7 @@ ENTRYPOINT ["dotnet", "ProjectManagement.Discord.dll"]
 
 ```bash
 # Build
-docker build -f Dockerfile.discord -t pm-discord-bot .
+docker build -t pm-discord-bot .
 
 # Run (pass secrets via environment variables — never bake them into the image)
 docker run -d \
@@ -69,13 +69,20 @@ docker run -d \
 
 ### Docker Compose
 
-Add to your existing `docker-compose.yml`:
+Use the included `docker-compose.yml`:
+
+```bash
+# Create a .env file with your values (copy from .env.example or appsettings.example.json)
+docker compose up --build
+```
+
+Or run directly with inline variables:
 
 ```yaml
   discord-bot:
     build:
       context: .
-      dockerfile: Dockerfile.discord
+      dockerfile: Dockerfile
     restart: unless-stopped
     environment:
       - Discord__BotToken=${DISCORD_BOT_TOKEN}
@@ -92,7 +99,7 @@ Add to your existing `docker-compose.yml`:
 [Render](https://render.com) supports Docker-based background workers.
 
 1. Create a new **Background Worker** service in Render.
-2. Set **Docker** as the runtime and point to your `Dockerfile.discord`.
+2. Set **Docker** as the runtime and point to your `Dockerfile`.
 3. Add the following environment variables in the Render dashboard:
 
 | Key | Value |
@@ -133,8 +140,7 @@ az group create --name rg-discord-bot --location eastus
 az containerapp env create --name cae-discord --resource-group rg-discord-bot --location eastus
 
 # Push your image to Azure Container Registry (or Docker Hub)
-az acr build --registry myregistry --image pm-discord-bot:latest \
-  --file Dockerfile.discord .
+az acr build --registry myregistry --image pm-discord-bot:latest .
 
 # Deploy
 az containerapp create \
@@ -224,7 +230,7 @@ The Discord bot is a stateful TCP connection to Discord's gateway servers. Monit
 git pull
 
 # Re-publish / rebuild Docker image
-docker build -f Dockerfile.discord -t pm-discord-bot:new .
+docker build -t pm-discord-bot:new .
 
 # Swap the running container
 docker stop pm-discord-bot

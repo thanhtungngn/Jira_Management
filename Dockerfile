@@ -1,32 +1,33 @@
-# ── Build stage ────────────────────────────────────────────────────────────────
+# syntax=docker/dockerfile:1
+# ── Build stage ───────────────────────────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-WORKDIR /repo
+WORKDIR /src
 
-# Copy project files first so the restore layer is cached independently
-COPY src/ProjectManagement.Core/ProjectManagement.Core.csproj   src/ProjectManagement.Core/
-COPY src/ProjectManagement.Api/ProjectManagement.Api.csproj     src/ProjectManagement.Api/
+# Copy project file first for layer-cached package restore.
+COPY src/ProjectManagement.Discord/ProjectManagement.Discord.csproj src/ProjectManagement.Discord/
 
-RUN dotnet restore src/ProjectManagement.Api/ProjectManagement.Api.csproj
+RUN dotnet restore src/ProjectManagement.Discord/ProjectManagement.Discord.csproj
 
-# Copy the full source and publish
-COPY src/ProjectManagement.Core/ src/ProjectManagement.Core/
-COPY src/ProjectManagement.Api/  src/ProjectManagement.Api/
-RUN dotnet publish src/ProjectManagement.Api/ProjectManagement.Api.csproj \
-    --configuration Release \
-    --output /app/publish \
+# Copy the rest of the source code.
+COPY src/ProjectManagement.Discord/ src/ProjectManagement.Discord/
+
+# Publish a Release build.
+RUN dotnet publish src/ProjectManagement.Discord/ProjectManagement.Discord.csproj \
+    -c Release \
+    -o /app/publish \
     --no-restore
 
-# ── Runtime stage ──────────────────────────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+# ── Runtime stage ─────────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
+
+# Run as a non-root user for security.
+RUN adduser --disabled-password --no-create-home --uid 1001 pm-discord
+USER pm-discord
+
 WORKDIR /app
-
-# Render injects PORT=10000 at runtime; ASPNETCORE_HTTP_PORTS picks it up.
-# The default here is a fallback for local docker run.
-ENV ASPNETCORE_HTTP_PORTS=10000
-ENV ASPNETCORE_ENVIRONMENT=Production
-
-EXPOSE 10000
-
 COPY --from=build /app/publish .
 
-ENTRYPOINT ["dotnet", "ProjectManagement.Api.dll"]
+# The bot uses outbound TCP only (Discord gateway port 443/WSS).
+# No inbound ports need to be exposed.
+
+ENTRYPOINT ["dotnet", "ProjectManagement.Discord.dll"]

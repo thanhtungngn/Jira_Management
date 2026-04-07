@@ -1,263 +1,155 @@
-# Architecture
+# Discord Bot — Architecture
 
 ## Overview
 
-This solution provides unified programmatic access to three project management platforms — **Jira**, **Trello**, and **GitHub** — through two independently deployable entry points that share a common core library.
+The Discord bot exposes Jira, Trello, and GitHub project management capabilities through a single natural-language `/ask` command. Users type plain English prompts; an OpenAI LLM interprets the intent and calls the appropriate tool functions against the already-deployed `ProjectManagement.Api` REST API.
+
+The Discord bot has **no direct dependency** on `ProjectManagement.Core` — all platform operations go through the deployed REST API via HTTP, keeping the bot lightweight and stateless with respect to credentials.
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                     Consumers                            │
-│   HTTP clients / browsers    AI assistants (MCP)         │
-└────────────┬─────────────────────────┬───────────────────┘
-             │                         │
-┌────────────▼────────┐   ┌────────────▼────────────────────┐
-│  ProjectManagement  │   │     ProjectManagement.Mcp        │
-│       .Api          │   │   (stdio MCP server, net10.0)    │
-│  (ASP.NET Core 10)  │   │                                  │
-│                     │   │  JiraTools / TrelloTools /       │
-│  Controllers:       │   │  GitHubTools                     │
-│  - ProjectsCtrl     │   │  (McpServerToolType)             │
-│  - IssuesCtrl       │   └────────────┬────────────────────┘
-│  - BoardsCtrl       │                │
-│  - CardsCtrl        │                │
-│  - RepositoriesCtrl │                │
-│  - HealthCtrl       │                │
-└────────────┬────────┘                │
-             │                         │
-             └──────────┬──────────────┘
-                        │
-        ┌───────────────▼───────────────────────────────┐
-        │           ProjectManagement.Core               │
-        │               (net10.0 class library)          │
-        │                                                │
-        │  ServiceCollectionExtensions                   │
-        │    AddJiraClient() / AddTrelloClient() /       │
-        │    AddGitHubClient()                           │
-        │                                                │
-        │  ┌──────────────┐  ┌────────────┐  ┌────────┐ │
-        │  │  JiraClient  │  │TrelloClient│  │GitHub  │ │
-        │  │  IJiraClient │  │ITrelloClient│ │Client  │ │
-        │  │  JiraOptions │  │TrelloOptions│ │IGitHub │ │
-        │  │  Models/     │  │Models/     │  │Options │ │
-        │  └──────┬───────┘  └─────┬──────┘  └───┬────┘ │
-        └─────────┼────────────────┼──────────────┼──────┘
-                  │                │              │
-         ┌────────▼──────┐ ┌───────▼────┐ ┌──────▼────────┐
-         │  Jira Cloud   │ │   Trello   │ │  GitHub REST  │
-         │  REST API v3  │ │   API v1   │ │     API v3    │
-         └───────────────┘ └────────────┘ └───────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                          Consumers                               │
+│   HTTP clients/Swagger    AI Assistants (MCP)    Discord Users   │
+└────────────┬─────────────────────────┬───────────────┬───────────┘
+             │                         │               │
+┌────────────▼──────────┐ ┌────────────▼───────┐ ┌────▼────────────────────┐
+│  ProjectManagement    │ │ ProjectManagement   │ │  ProjectManagement      │
+│       .Api            │ │      .Mcp           │ │     .Discord            │
+│  (ASP.NET Core 10)    │ │  (MCP stdio/HTTP)   │ │  (.NET 10 Worker)       │
+│  (deployed remotely)  │ │                     │ │                         │
+│                       │ │  McpServerTool      │ │  Bot/                   │
+│  REST Controllers     │ │  JiraTools          │ │    DiscordBotService    │
+│  Swagger UI           │ │  TrelloTools        │ │    InteractionHandler   │
+└────────────▲──────────┘ │  GitHubTools        │ │  Modules/               │
+             │            └────────────┬─────────┘ │    AskModule           │
+             │                         │           │  Services/              │
+             │  HTTP tool calls        │           │    LlmChatService      │
+             └─────────────────────────┘           │  Options/               │
+                  ▲ (via LlmChatService)            │    DiscordOptions      │
+                  │                                │    AiOptions           │
+                  └────────────────────────────────┘
+                           │
+                    ┌──────▼──────┐
+                    │  OpenAI API │
+                    │  (LLM + fn  │
+                    │   calling)  │
+                    └─────────────┘
 ```
 
 ---
 
 ## Projects
 
-### `ProjectManagement.Core`
+### `ProjectManagement.Discord`
 
-**Target:** `net10.0` (class library)
+**Target:** `net10.0` (Worker Service / `OutputType: Exe`)
 
-The shared kernel. All HTTP communication, authentication, model definitions, and DI registration live here.
+The Discord bot entry point. Key namespaces:
 
-#### Key types
+| Namespace | Responsibility |
+|---|---|
+| `Bot/` | Discord.Net lifecycle — connect, register commands, dispatch interactions |
+| `Modules/` | Thin Discord slash-command wrapper; `AskModule` defers, calls `ILlmChatService`, replies |
+| `Services/` | `LlmChatService` — sends prompt to OpenAI with tool definitions; tools make HTTP calls to the deployed REST API |
+| `Options/` | `DiscordOptions` and `AiOptions` POCOs bound from configuration |
 
-| Type | Responsibility |
-|------|----------------|
-| `ServiceCollectionExtensions` | `AddJiraClient`, `AddTrelloClient`, `AddGitHubClient` — registers typed `HttpClient` instances and binds options |
-| `JiraClient` / `IJiraClient` | Jira Cloud REST API v3 — projects, issues, transitions, comments |
-| `TrelloClient` / `ITrelloClient` | Trello API v1 — boards, lists, cards (CRUD) |
-| `GitHubClient` / `IGitHubClient` | GitHub REST API v3 — repositories, branches, commits, issues |
-| `JiraOptions` | `BaseUrl`, `Email`, `ApiToken` — section name `Jira` |
-| `TrelloOptions` | `ApiKey`, `Token` — section name `Trello` |
-| `GitHubOptions` | `Token`, `UserAgent` — section name `GitHub` |
+### `ProjectManagement.Discord.Tests`
 
-#### Authentication per service
+**Target:** `net10.0` (xUnit test project)
 
-| Service | Scheme | Header |
-|---------|--------|--------|
-| Jira | HTTP Basic (`email:token` → Base64) | `Authorization: Basic …` |
-| Trello | OAuth 1.0 (key + token) | `Authorization: OAuth oauth_consumer_key="…", oauth_token="…"` |
-| GitHub | Bearer token | `Authorization: Bearer …` |
-
-#### Configuration resolution
-
-`ServiceCollectionExtensions` resolves options in priority order:
-
-1. **Structured section** (`Jira:BaseUrl`, `Trello:ApiKey`, `GitHub:Token`, …) — preferred
-2. **Flat environment variable fallback** (`JIRA_BASE_URL`, `TRELLO_API_KEY`, `GITHUB_TOKEN`, …)
-
-This allows both `appsettings.json`-based configuration (local development) and plain environment variable injection (Docker, CI/CD).
-
-#### Logging
-
-All three clients use `ILogger<T>` injected via DI (falls back to `NullLogger` for test/standalone use):
-
-- `LogDebug` — before each HTTP call (URL, key parameters)
-- `LogInformation` — after successful response (result count, entity IDs/names)
-- `LogWarning` / `LogError` — surfaced through the API's global exception handler
+Unit tests covering the Discord bot's configuration classes.
 
 ---
 
-### `ProjectManagement.Api`
-
-**Target:** `net10.0` (ASP.NET Core Web)  
-**Port:** configured in `launchSettings.json` (default HTTPS `62693`)
-
-A standard ASP.NET Core REST API. All controllers are thin: they delegate entirely to the `Core` clients and return `ActionResult<T>`.
-
-#### Controllers
-
-| Controller | Route prefix | Backing client |
-|------------|-------------|----------------|
-| `ProjectsController` | `/api/projects` | `IJiraClient` |
-| `IssuesController` | `/api/issues` | `IJiraClient` |
-| `BoardsController` | `/api/boards` | `ITrelloClient` |
-| `CardsController` | `/api/cards` | `ITrelloClient` |
-| `RepositoriesController` | `/api/repositories` | `IGitHubClient` |
-| `HealthController` | `/health` | — |
-
-#### Cross-cutting concerns
-
-- **Swagger/OpenAPI** — generated from XML doc comments, versioned via `AssemblyInformationalVersion`
-- **Global exception handler** — `UseExceptionHandler` middleware:
-  - `HttpRequestException` → `502 Bad Gateway` with `application/problem+json` body
-  - All other exceptions → `500 Internal Server Error`
-- **Logging** — `ILogger<TController>` injected into every controller; logs method, route, and key parameters at `Information` level
-
-#### Pipeline order
+## Layered Design
 
 ```
-Request
-  → HTTPS redirection
-  → Exception handler (global)
-  → Authorization
-  → Controller routing
-  → Controller action (→ Core client → external API)
-Response
+Discord Gateway Events
+       │
+       ▼
+InteractionHandler         ← receives raw SocketInteraction
+       │ creates SocketInteractionContext
+       ▼
+AskModule                  ← thin: DeferAsync → call LlmChatService → FollowupAsync
+       │ calls
+       ▼
+LlmChatService             ← sends prompt + tool definitions to OpenAI
+       │ LLM selects tools
+       ▼                     (UseFunctionInvocation middleware handles agentic loop)
+Tool functions             ← HTTP GET/POST to the deployed REST API
+       │
+       ▼
+ProjectManagement.Api      ← deployed REST API (Jira, GitHub, Trello)
+       │
+       ▼
+External APIs (Jira, Trello, GitHub)
 ```
+
+### Key design decisions
+
+1. **Natural language first** — a single `/ask <prompt>` command replaces all platform-specific slash commands. The LLM understands intent and routes to the right tool, eliminating the need for users to remember command syntax.
+
+2. **No Core dependency in Discord** — the bot forwards requests to the deployed REST API via `HttpClient`, keeping Jira/Trello/GitHub credentials server-side. The Discord bot only needs an OpenAI API key and the deployed API URL.
+
+3. **Automatic tool invocation loop** — `UseFunctionInvocation()` middleware (from `Microsoft.Extensions.AI`) transparently handles the LLM ↔ tool call cycle until a final text response is produced.
+
+4. **`[ExcludeFromCodeCoverage]` on framework wrappers** — `Bot/` and `Modules/` require a live Discord WebSocket connection and are excluded from coverage measurement.
+
+5. **Minimal gateway intents** — `GatewayIntents.Guilds` is the only intent required for slash commands.
+
+6. **Configuration via `Microsoft.Extensions.Options`** — `AiOptions` exposes `ApiKey`, `Model`, and `ApiBaseUrl` and can be bound from the `Ai` configuration section or flat environment variables (`AI_API_KEY`, `AI_MODEL`, `AI_API_BASE_URL`).
 
 ---
 
-### `ProjectManagement.Mcp`
+## Data flow — Example: "Show all open bugs in PROJ"
 
-**Target:** `net10.0` (Console / `OutputType=Exe`)  
-**Transport:** stdio (standard Model Context Protocol convention)
-
-Exposes all three service integrations as **MCP tools** so AI assistants (GitHub Copilot, Claude Desktop, etc.) can invoke them directly.
-
-#### Tool classes
-
-| Class | Tools exposed | Backing client |
-|-------|---------------|----------------|
-| `JiraTools` | `get_projects`, `search_issues`, `get_issue`, `create_issue`, `transition_issue`, `add_comment` | `IJiraClient` |
-| `TrelloTools` | `get_boards`, `get_board`, `get_lists`, `get_cards`, `get_card`, `create_card`, `update_card`, `delete_card` | `ITrelloClient` |
-| `GitHubTools` | `list_repositories`, `get_repository`, `list_branches`, `list_commits`, `list_issues`, `get_github_issue`, `create_github_issue` | `IGitHubClient` |
-
-Each tool class:
-- is decorated with `[McpServerToolType]`
-- receives `ILogger<T>` via constructor injection and logs every tool invocation at `Information` level with a `[MCP]` prefix
-- delegates immediately to the corresponding `Core` client method
-
-#### Startup
-
-```csharp
-Host.CreateApplicationBuilder(args)
-    → AddJiraClient / AddTrelloClient / AddGitHubClient  (from Core)
-    → AddMcpServer().WithStdioServerTransport().WithToolsFromAssembly()
-    → Build().RunAsync()
+```
+User types /ask Show all open bugs in PROJ
+       │
+Discord sends InteractionCreated event to bot
+       │
+InteractionHandler.HandleInteractionAsync()
+    → creates SocketInteractionContext
+    → InteractionService.ExecuteCommandAsync()
+       │
+AskModule.AskAsync("Show all open bugs in PROJ")
+    → await DeferAsync()           // sends "Bot is thinking…" to Discord
+    → response = await _llmService.AskAsync(prompt)
+    → await FollowupAsync(response)
+       │
+LlmChatService.AskAsync()
+    → builds 15 tool definitions (Jira, GitHub, Trello)
+    → sends [System, User] messages to OpenAI
+       │
+OpenAI decides to call tool: search_jira_issues("PROJ", null, "Bug")
+       │
+LlmChatService.SearchJiraIssuesAsync("PROJ", null, "Bug")
+    → HTTP GET /api/issues?projectKey=PROJ&issueType=Bug&maxResults=25
+    → returns JSON from deployed API
+       │
+OpenAI receives tool result, generates human-readable reply
+       │
+LlmChatService returns final text to AskModule
+    → FollowupAsync sends text to Discord channel
 ```
 
 ---
 
-## Dependency graph
+## Dependencies
 
-```
-ProjectManagement.Api   ProjectManagement.Mcp
-         │                       │
-         └──────────┬────────────┘
-                    ▼
-         ProjectManagement.Core
-                    │
-         Microsoft.Extensions.*
-         System.Net.Http
-         System.Text.Json
-```
+| Package | Version | Purpose |
+|---|---|---|
+| `Discord.Net` | 3.19.1 | Discord WebSocket gateway, Interaction Service |
+| `Microsoft.Extensions.Hosting` | 10.0.5 | Generic host, DI, IHostedService |
+| `Microsoft.Extensions.Http` | 10.0.5 | IHttpClientFactory for REST API calls |
+| `Microsoft.Extensions.Logging.Console` | 10.0.5 | Console log output |
+| `Microsoft.Extensions.AI` | 10.4.1 | IChatClient abstraction, ChatMessage, tool definitions |
+| `Microsoft.Extensions.AI.OpenAI` | 10.4.1 | OpenAI provider + UseFunctionInvocation middleware |
 
-Test projects:
+Test dependencies:
 
-```
-ProjectManagement.Api.Tests   → ProjectManagement.Core (via DI helpers)
-ProjectManagement.Core.Tests  → ProjectManagement.Core
-ProjectManagement.Mcp.Tests   → ProjectManagement.Mcp + ProjectManagement.Core
-```
-
----
-
-## Data flow — REST API request
-
-```
-Client
-  │  GET /api/issues?projectKey=PROJ&status=Open
-  ▼
-IssuesController.SearchIssues(request)
-  │  _logger.LogInformation(...)
-  ▼
-IJiraClient.SearchIssuesAsync(request)
-  │  _logger.LogDebug("Searching issues with JQL: {Jql}", jql)
-  ▼
-HttpClient → GET https://<baseUrl>/rest/api/3/search?jql=...
-  ▼
-Jira Cloud REST API
-  ▼
-SearchResult (deserialized via System.Text.Json)
-  │  _logger.LogInformation("Retrieved {Count} issues", ...)
-  ▼
-200 OK  application/json
-```
-
----
-
-## Data flow — MCP tool invocation
-
-```
-AI assistant (stdio)
-  │  {"method": "tools/call", "params": {"name": "search_issues", ...}}
-  ▼
-ModelContextProtocol runtime
-  ▼
-JiraTools.SearchIssuesAsync(projectKey, ...)
-  │  _logger.LogInformation("[MCP] search_issues: ...")
-  ▼
-IJiraClient.SearchIssuesAsync(request)      (same as REST path from here)
-  ▼
-Jira Cloud REST API
-  ▼
-SearchResult → serialized as MCP tool result
-  ▼
-AI assistant (stdio)
-```
-
----
-
-## Configuration loading order
-
-Both entry points use the standard .NET configuration stack:
-
-1. `appsettings.json` (base defaults)
-2. Environment variables (override — useful in Docker/CI)
-3. `ServiceCollectionExtensions` option binder (structured section → flat key fallback)
-
-The `appsettings.example.json` at the root documents all required keys and can be copied to either project directory.
-
----
-
-## Logging architecture
-
-| Layer | Logger category | Default level | What is logged |
-|-------|----------------|---------------|----------------|
-| API controllers | `ProjectManagement.Api.Controllers.*` | Information | Incoming operation + key params |
-| MCP tools | `ProjectManagement.Mcp.*` | Information | Tool name + key params (prefixed `[MCP]`) |
-| Core clients | `ProjectManagement.Core.Jira.JiraClient` etc. | Debug / Information | HTTP call details, result counts |
-| ASP.NET Core | `Microsoft.AspNetCore.*` | Warning | Framework internals |
-| HttpClient | `System.Net.Http.HttpClient` | Warning | Raw HTTP (disabled by default) |
-
-To enable verbose HTTP tracing, set `"System.Net.Http.HttpClient": "Trace"` in the `Logging:LogLevel` section.
+| Package | Version | Purpose |
+|---|---|---|
+| `xunit` | 2.9.3 | Test framework |
+| `coverlet.collector` | 8.0.1 | Code coverage collection |
+| `Microsoft.Extensions.Logging.Abstractions` | 10.0.5 | NullLogger in tests |
