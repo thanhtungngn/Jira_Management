@@ -27,7 +27,7 @@ public class IssuesController : ControllerBase
     ///   <c>issueType</c> — filter by issue type (e.g. <c>Bug</c>, <c>Story</c>).<br/>
     ///   <c>assigneeEmail</c> — filter by assignee email address.<br/>
     ///   <c>maxResults</c> — page size, default 50.<br/>
-    ///   <c>startAt</c> — zero-based offset for pagination, default 0.
+    ///   <c>nextPageToken</c> — opaque token from a previous response for pagination; omit for the first page.
     /// </param>
     /// <returns>A paginated list of matching issues.</returns>
     /// <response code="200">Issues retrieved successfully.</response>

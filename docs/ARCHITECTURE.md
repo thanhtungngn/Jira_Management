@@ -113,7 +113,7 @@ A standard ASP.NET Core REST API. All controllers are thin: they delegate entire
 | `BoardsController` | `/api/boards` | `ITrelloClient` |
 | `CardsController` | `/api/cards` | `ITrelloClient` |
 | `RepositoriesController` | `/api/repositories` | `IGitHubClient` |
-| `HealthController` | `/health` | — |
+| `HealthController` | `/api/health` | — |
 
 #### Cross-cutting concerns
 
@@ -204,11 +204,12 @@ IssuesController.SearchIssues(request)
 IJiraClient.SearchIssuesAsync(request)
   │  _logger.LogDebug("Searching issues with JQL: {Jql}", jql)
   ▼
-HttpClient → GET https://<baseUrl>/rest/api/3/search?jql=...
+HttpClient → POST https://<baseUrl>/rest/api/3/search/jql
+             body: { jql, maxResults, fields, nextPageToken? }
   ▼
 Jira Cloud REST API
   ▼
-SearchResult (deserialized via System.Text.Json)
+SearchAndReconcileResults → SearchResult (deserialized via System.Text.Json)
   │  _logger.LogInformation("Retrieved {Count} issues", ...)
   ▼
 200 OK  application/json

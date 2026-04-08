@@ -185,9 +185,8 @@ public class JiraClientTests
                     },
                 },
             },
-            total = 1,
-            startAt = 0,
-            maxResults = 50,
+            isLast = true,
+            nextPageToken = (string?)null,
         };
         var (client, _) = CreateClient(HttpStatusCode.OK, payload);
 
@@ -196,13 +195,13 @@ public class JiraClientTests
         Assert.Single(result.Issues);
         Assert.Equal("PROJ-1", result.Issues[0].Key);
         Assert.Equal("Fix the bug", result.Issues[0].Fields.Summary);
-        Assert.Equal(1, result.Total);
+        Assert.True(result.IsLast);
     }
 
     [Fact]
     public async Task SearchIssuesAsync_AppliesFilters()
     {
-        var payload = new { issues = Array.Empty<object>(), total = 0, startAt = 0, maxResults = 50 };
+        var payload = new { issues = Array.Empty<object>(), isLast = true };
         var (client, handlerMock) = CreateClient(HttpStatusCode.OK, payload);
 
         await client.SearchIssuesAsync(new SearchIssuesRequest

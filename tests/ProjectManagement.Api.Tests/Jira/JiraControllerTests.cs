@@ -68,7 +68,7 @@ public class JiraControllerTests : IClassFixture<ApiTestFactory>
             .Setup(c => c.SearchIssuesAsync(It.Is<SearchIssuesRequest>(r => r.ProjectKey == "PROJ")))
             .ReturnsAsync(new SearchResult
             {
-                Total = 1,
+                IsLast = true,
                 Issues = [new JiraIssue { Key = "PROJ-1", Fields = new IssueFields { Summary = "Bug" } }],
             });
 
@@ -76,7 +76,7 @@ public class JiraControllerTests : IClassFixture<ApiTestFactory>
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var result = await response.Content.ReadFromJsonAsync<SearchResult>();
-        Assert.Equal(1, result!.Total);
+        Assert.True(result!.IsLast);
         Assert.Equal("PROJ-1", result.Issues[0].Key);
     }
 

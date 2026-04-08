@@ -15,7 +15,8 @@ public class JiraClient : IJiraClient
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNamingPolicy         = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition       = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
     };
 
     public JiraClient(HttpClient httpClient, ILogger<JiraClient>? logger = null)
@@ -95,13 +96,14 @@ public class JiraClient : IJiraClient
 
         // GET /rest/api/3/search was removed (410 Gone).
         // Use POST /rest/api/3/search/jql per Atlassian changelog CHANGE-2046.
+        // The new endpoint uses nextPageToken (string) for pagination, not startAt (int).
         var body = new
         {
             jql,
-            maxResults = request.MaxResults,
-            startAt    = request.StartAt,
-            fields     = new[] { "summary", "status", "issuetype", "priority",
-                                 "assignee", "reporter", "created", "updated" },
+            maxResults     = request.MaxResults,
+            nextPageToken  = request.NextPageToken,   // omitted when null (WhenWritingNull)
+            fields         = new[] { "summary", "status", "issuetype", "priority",
+                                     "assignee", "reporter", "created", "updated" },
         };
 
         var response = await _httpClient.PostAsJsonAsync("search/jql", body, JsonOptions);

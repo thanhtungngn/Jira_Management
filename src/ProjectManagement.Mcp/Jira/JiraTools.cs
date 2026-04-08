@@ -25,7 +25,7 @@ public sealed class JiraTools
         string? issueType = null,
         string? assigneeEmail = null,
         int maxResults = 50,
-        int startAt = 0)
+        string? nextPageToken = null)
     {
         _logger.LogInformation("[MCP] search_issues: project={ProjectKey} status={Status} type={IssueType}", projectKey, status, issueType);
         return await _client.SearchIssuesAsync(new SearchIssuesRequest
@@ -35,7 +35,7 @@ public sealed class JiraTools
             IssueType     = issueType,
             AssigneeEmail = assigneeEmail,
             MaxResults    = maxResults,
-            StartAt       = startAt,
+            NextPageToken = nextPageToken,
         });
     }
 

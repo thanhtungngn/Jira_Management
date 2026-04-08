@@ -125,6 +125,15 @@ public class SearchResult
     [JsonPropertyName("issues")]
     public List<JiraIssue> Issues { get; set; } = [];
 
+    /// <summary>True when there are no further pages (new <c>search/jql</c> API).</summary>
+    [JsonPropertyName("isLast")]
+    public bool IsLast { get; set; }
+
+    /// <summary>Opaque token to pass as <c>nextPageToken</c> to fetch the next page (new <c>search/jql</c> API).</summary>
+    [JsonPropertyName("nextPageToken")]
+    public string? NextPageToken { get; set; }
+
+    // Kept for backward compatibility; not populated by the new search/jql endpoint.
     [JsonPropertyName("total")]
     public int Total { get; set; }
 
@@ -175,7 +184,8 @@ public class SearchIssuesRequest
     public string? IssueType { get; set; }
     public string? AssigneeEmail { get; set; }
     public int MaxResults { get; set; } = 50;
-    public int StartAt { get; set; } = 0;
+    /// <summary>Opaque token returned by a previous search response; omit for the first page.</summary>
+    public string? NextPageToken { get; set; }
 }
 
 public class TransitionRequest
