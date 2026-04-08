@@ -15,8 +15,9 @@ public class JiraClient : IJiraClient
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNamingPolicy         = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition       = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+        PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+        Converters             = { new JiraDateTimeConverter() },
     };
 
     public JiraClient(HttpClient httpClient, ILogger<JiraClient>? logger = null)
