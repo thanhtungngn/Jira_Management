@@ -221,6 +221,81 @@ MCP Client
 
 ---
 
+# 🤖 Agent Layer (NEW)
+
+## Overview
+
+The system introduces a **multi-agent architecture** to support AI-assisted software development lifecycle (SDLC).
+
+### Agents
+
+* **BA Agent 🚧**
+
+  * Analyze Jira/Trello tickets
+  * Identify missing requirements
+  * Generate clarification questions
+  * Produce refined specifications & acceptance criteria
+
+* **Dev Agent 🚧**
+
+  * Consume refined requirements
+  * Break down tasks
+  * Suggest architecture/design
+  * Generate implementation code
+
+---
+
+## Agent Flow
+
+```
+Jira / Trello Ticket
+        ↓
+   BA Agent 🚧
+        ↓
+Clarifications + Refined Spec
+        ↓
+   Dev Agent 🚧
+        ↓
+Task Breakdown + Code
+```
+
+---
+
+## Current State
+
+* Agents are implemented as prompt-based workflows (Markdown-driven)
+* Execution via GitHub Copilot inside Visual Studio
+* No direct orchestration or shared memory
+
+---
+
+## Target Architecture (Planned)
+
+```
+                ┌──────────────────────────────┐
+                │        AGENT LAYER 🤖        │
+                │------------------------------│
+                │ BA Agent 🚧                  │
+                │ Dev Agent 🚧                 │
+                │                              │
+                │ AgentOrchestrator ❌         │
+                │ (workflow coordination)      │
+                └──────────────┬───────────────┘
+                               ▼
+                        MCP / AI Layer
+```
+
+---
+
+
+Future enhancements:
+
+* Multi-agent conversation loop (BA ↔ Dev)
+* Shared memory (context persistence)
+* Integration with MCP tools
+
+---
+
 # 🎯 Key Design Highlights
 
 * MCP-first AI architecture
