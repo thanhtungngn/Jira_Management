@@ -28,6 +28,11 @@ services:
       GitHub__Token:     ${GITHUB_TOKEN}
       GitHub__UserAgent: ProjectManagement/1.0
 
+      # ── Confluence ───────────────────────────────────────────────────────────
+      Confluence__BaseUrl:  ${CONFLUENCE_BASE_URL}
+      Confluence__Email:    ${CONFLUENCE_EMAIL}
+      Confluence__ApiToken: ${CONFLUENCE_API_TOKEN}
+
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:10000/api/health"]

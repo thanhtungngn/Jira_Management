@@ -30,8 +30,14 @@ services:
         sync: false
       - key: GitHub__UserAgent
         value: ProjectManagement/1.0
+      - key: Confluence__BaseUrl
+        sync: false
+      - key: Confluence__Email
+        sync: false
+      - key: Confluence__ApiToken
+        sync: false
 
-  # ── MCP Server ───────────────────────────────────────────────────────────────
+  # ── MCP Server
   - type: web
     name: project-management-mcp
     runtime: docker
@@ -59,3 +65,9 @@ services:
         sync: false
       - key: GitHub__UserAgent
         value: ProjectManagement/1.0
+      - key: Confluence__BaseUrl
+        sync: false
+      - key: Confluence__Email
+        sync: false
+      - key: Confluence__ApiToken
+        sync: false
