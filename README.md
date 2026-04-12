@@ -19,11 +19,13 @@ It is evolving into an **AI-powered engineering platform** with documentation au
 * GitHub: `/api/github/repositories`, `/api/github/repositories/{owner}/{repo}`
 * Confluence: `/api/confluence/pages/{pageId}`
 
+Confluence REST supports: create page, create folder-like container, get page, list children (structure), move page, update page, and delete page.
+
 Legacy routes (`/api/projects`, `/api/issues`, `/api/boards`, `/api/cards`, `/api/repositories`) are still supported for compatibility.
 
 ### Latest Implemented Updates
 
-* ✅ MCP tool `update_confluence_document` is available to update existing Confluence pages by page ID.
+* ✅ Confluence MCP now supports full lifecycle and structure operations: create page/folder, get page, list children, move, update, delete.
 * ✅ Core Confluence integration is available via `ConfluenceClient`, `IConfluenceClient`, and `AddConfluenceClient`.
 * ✅ API version endpoints are available for quick smoke testing: `/version` and `/api/version`.
 * ✅ REST API now has grouped routes by platform: `/api/jira/*`, `/api/trello/*`, `/api/github/*`, `/api/confluence/*`.

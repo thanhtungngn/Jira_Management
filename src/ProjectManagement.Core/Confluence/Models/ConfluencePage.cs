@@ -7,4 +7,7 @@ public class ConfluencePage
     public string Status { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public int Version { get; set; }
+    public string? SpaceKey { get; set; }
+    public string? ParentId { get; set; }
+    public string? BodyStorageValue { get; set; }
 }
