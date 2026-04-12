@@ -12,7 +12,8 @@ builder.Services.AddControllers();
 builder.Services
     .AddJiraClient(builder.Configuration)
     .AddTrelloClient(builder.Configuration)
-    .AddGitHubClient(builder.Configuration);
+    .AddGitHubClient(builder.Configuration)
+    .AddConfluenceClient(builder.Configuration);
 
 var appVersion = Assembly.GetExecutingAssembly()
     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
@@ -85,6 +86,19 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 app.UseAuthorization();
+
+app.MapGet("/version", () => Results.Ok(new
+{
+    service = "ProjectManagement.Api",
+    version = appVersion,
+}));
+
+app.MapGet("/api/version", () => Results.Ok(new
+{
+    service = "ProjectManagement.Api",
+    version = appVersion,
+}));
+
 app.MapControllers();
 
 app.Run();

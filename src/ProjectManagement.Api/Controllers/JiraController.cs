@@ -4,35 +4,49 @@ using ProjectManagement.Core.Jira.Models;
 
 namespace ProjectManagement.Api.Controllers;
 
-/// <summary>Endpoints for managing Jira issues.</summary>
+/// <summary>Endpoints for Jira projects and issues.</summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/jira")]
 [Produces("application/json")]
-public class IssuesController : ControllerBase
+public class JiraController : ControllerBase
 {
     private readonly IJiraClient _client;
-    private readonly ILogger<IssuesController> _logger;
+    private readonly ILogger<JiraController> _logger;
 
-    public IssuesController(IJiraClient client, ILogger<IssuesController> logger)
+    public JiraController(IJiraClient client, ILogger<JiraController> logger)
     {
         _client = client;
         _logger = logger;
     }
 
+    /// <summary>Returns all accessible Jira projects (up to 50).</summary>
+    [HttpGet("projects")]
+    [HttpGet("/api/projects")]
+    [ProducesResponseType(typeof(List<JiraProject>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<ActionResult<List<JiraProject>>> GetProjects()
+    {
+        _logger.LogInformation("Getting all Jira projects");
+        var projects = await _client.GetProjectsAsync();
+        return Ok(projects);
+    }
+
+    /// <summary>Returns details of a specific Jira project.</summary>
+    [HttpGet("projects/{key}")]
+    [HttpGet("/api/projects/{key}")]
+    [ProducesResponseType(typeof(JiraProject), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
+    public async Task<ActionResult<JiraProject>> GetProject(string key)
+    {
+        _logger.LogInformation("Getting project {ProjectKey}", key);
+        var project = await _client.GetProjectAsync(key);
+        return Ok(project);
+    }
+
     /// <summary>Searches for issues in a project using optional filters.</summary>
-    /// <param name="request">
-    ///   Query parameters:<br/>
-    ///   <c>projectKey</c> — required Jira project key.<br/>
-    ///   <c>status</c> — filter by status name (e.g. <c>In Progress</c>).<br/>
-    ///   <c>issueType</c> — filter by issue type (e.g. <c>Bug</c>, <c>Story</c>).<br/>
-    ///   <c>assigneeEmail</c> — filter by assignee email address.<br/>
-    ///   <c>maxResults</c> — page size, default 50.<br/>
-    ///   <c>nextPageToken</c> — opaque token from a previous response for pagination; omit for the first page.
-    /// </param>
-    /// <returns>A paginated list of matching issues.</returns>
-    /// <response code="200">Issues retrieved successfully.</response>
-    /// <response code="502">Jira API returned an error.</response>
-    [HttpGet]
+    [HttpGet("issues")]
+    [HttpGet("/api/issues")]
     [ProducesResponseType(typeof(SearchResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
     public async Task<ActionResult<SearchResult>> SearchIssues([FromQuery] SearchIssuesRequest request)
@@ -43,12 +57,8 @@ public class IssuesController : ControllerBase
     }
 
     /// <summary>Returns the full details of a single issue, including recent comments.</summary>
-    /// <param name="key">The issue key (e.g. <c>MYPROJ-42</c>).</param>
-    /// <returns>The issue with all fields and comments.</returns>
-    /// <response code="200">Issue found.</response>
-    /// <response code="404">Issue not found.</response>
-    /// <response code="502">Jira API returned an error.</response>
-    [HttpGet("{key}")]
+    [HttpGet("issues/{key}")]
+    [HttpGet("/api/issues/{key}")]
     [ProducesResponseType(typeof(JiraIssue), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
@@ -60,15 +70,8 @@ public class IssuesController : ControllerBase
     }
 
     /// <summary>Creates a new issue in a Jira project.</summary>
-    /// <param name="request">
-    ///   Issue details. <c>projectKey</c> and <c>summary</c> are required.
-    ///   <c>issueType</c> defaults to <c>Task</c> when omitted.
-    /// </param>
-    /// <returns>The newly created issue.</returns>
-    /// <response code="201">Issue created successfully.</response>
-    /// <response code="400">Request body is missing or invalid.</response>
-    /// <response code="502">Jira API returned an error.</response>
-    [HttpPost]
+    [HttpPost("issues")]
+    [HttpPost("/api/issues")]
     [ProducesResponseType(typeof(JiraIssue), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
@@ -80,12 +83,8 @@ public class IssuesController : ControllerBase
     }
 
     /// <summary>Updates the editable fields of an existing issue. All fields are optional.</summary>
-    /// <param name="key">The issue key (e.g. <c>MYPROJ-42</c>).</param>
-    /// <param name="request">Fields to update. Omit a field to leave it unchanged.</param>
-    /// <response code="204">Issue updated successfully.</response>
-    /// <response code="404">Issue not found.</response>
-    /// <response code="502">Jira API returned an error.</response>
-    [HttpPut("{key}")]
+    [HttpPut("issues/{key}")]
+    [HttpPut("/api/issues/{key}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
@@ -97,15 +96,8 @@ public class IssuesController : ControllerBase
     }
 
     /// <summary>Transitions an issue to a new workflow status.</summary>
-    /// <param name="key">The issue key (e.g. <c>MYPROJ-42</c>).</param>
-    /// <param name="request">
-    ///   The target transition name exactly as it appears in Jira
-    ///   (e.g. <c>In Progress</c>, <c>Done</c>). Name matching is case-insensitive.
-    /// </param>
-    /// <response code="204">Issue transitioned successfully.</response>
-    /// <response code="404">Issue not found or transition name not available.</response>
-    /// <response code="502">Jira API returned an error.</response>
-    [HttpPost("{key}/transitions")]
+    [HttpPost("issues/{key}/transitions")]
+    [HttpPost("/api/issues/{key}/transitions")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
@@ -117,12 +109,8 @@ public class IssuesController : ControllerBase
     }
 
     /// <summary>Adds a plain-text comment to an issue.</summary>
-    /// <param name="key">The issue key (e.g. <c>MYPROJ-42</c>).</param>
-    /// <param name="request">The comment text.</param>
-    /// <response code="204">Comment added successfully.</response>
-    /// <response code="404">Issue not found.</response>
-    /// <response code="502">Jira API returned an error.</response>
-    [HttpPost("{key}/comments")]
+    [HttpPost("issues/{key}/comments")]
+    [HttpPost("/api/issues/{key}/comments")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status502BadGateway)]
