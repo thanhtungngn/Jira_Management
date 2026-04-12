@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using ProjectManagement.Core.Confluence;
 using ProjectManagement.Core;
 using ProjectManagement.Core.GitHub;
 using ProjectManagement.Core.Jira;
@@ -194,5 +195,55 @@ public class ServiceCollectionExtensionsTests
         var opts = sp.GetRequiredService<IOptions<GitHubOptions>>().Value;
 
         Assert.Equal("ProjectManagement/1.0", opts.UserAgent);
+    }
+
+    // ── ConfluenceOptions ────────────────────────────────────────────────────
+
+    [Fact]
+    public void AddConfluenceClient_BindsStructuredSection()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Confluence:BaseUrl"]  = "https://mycompany.atlassian.net",
+                ["Confluence:Email"]    = "user@example.com",
+                ["Confluence:ApiToken"] = "secret-token",
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddConfluenceClient(config);
+
+        var sp = services.BuildServiceProvider();
+        var opts = sp.GetRequiredService<IOptions<ConfluenceOptions>>().Value;
+
+        Assert.Equal("https://mycompany.atlassian.net", opts.BaseUrl);
+        Assert.Equal("user@example.com", opts.Email);
+        Assert.Equal("secret-token", opts.ApiToken);
+    }
+
+    [Fact]
+    public void AddConfluenceClient_FallsBackToFlatEnvKeys()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["CONFLUENCE_BASE_URL"]  = "https://flat.atlassian.net",
+                ["CONFLUENCE_EMAIL"]     = "flat@example.com",
+                ["CONFLUENCE_API_TOKEN"] = "flat-token",
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddConfluenceClient(config);
+
+        var sp = services.BuildServiceProvider();
+        var opts = sp.GetRequiredService<IOptions<ConfluenceOptions>>().Value;
+
+        Assert.Equal("https://flat.atlassian.net", opts.BaseUrl);
+        Assert.Equal("flat@example.com", opts.Email);
+        Assert.Equal("flat-token", opts.ApiToken);
     }
 }

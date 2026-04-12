@@ -9,7 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddJiraClient(builder.Configuration)
     .AddTrelloClient(builder.Configuration)
-    .AddGitHubClient(builder.Configuration);
+    .AddGitHubClient(builder.Configuration)
+    .AddConfluenceClient(builder.Configuration);
 
 // ── Keep-alive: ping /health every 10 min to prevent Render free-tier sleep ──
 builder.Services.AddHttpClient();

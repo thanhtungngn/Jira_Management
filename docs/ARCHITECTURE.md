@@ -2,7 +2,7 @@
 
 ## Overview
 
-This solution provides unified programmatic access to three project management platforms — **Jira**, **Trello**, and **GitHub** — through two independently deployable entry points that share a common core library.
+This solution provides unified programmatic access to four project management and documentation platforms — **Jira**, **Trello**, **GitHub**, and **Confluence** — through two independently deployable entry points that share a common core library.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
@@ -15,13 +15,14 @@ This solution provides unified programmatic access to three project management p
 │       .Api          │   │   (stdio MCP server, net10.0)    │
 │  (ASP.NET Core 10)  │   │                                  │
 │                     │   │  JiraTools / TrelloTools /       │
-│  Controllers:       │   │  GitHubTools                     │
+│  Controllers:       │   │  GitHubTools / ConfluenceTools   │
 │  - ProjectsCtrl     │   │  (McpServerToolType)             │
 │  - IssuesCtrl       │   └────────────┬────────────────────┘
 │  - BoardsCtrl       │                │
 │  - CardsCtrl        │                │
 │  - RepositoriesCtrl │                │
 │  - HealthCtrl       │                │
+│  - Version Endpoints│                │
 └────────────┬────────┘                │
              │                         │
              └──────────┬──────────────┘
@@ -32,20 +33,20 @@ This solution provides unified programmatic access to three project management p
         │                                                │
         │  ServiceCollectionExtensions                   │
         │    AddJiraClient() / AddTrelloClient() /       │
-        │    AddGitHubClient()                           │
+        │    AddGitHubClient() / AddConfluenceClient()   │
         │                                                │
-        │  ┌──────────────┐  ┌────────────┐  ┌────────┐ │
-        │  │  JiraClient  │  │TrelloClient│  │GitHub  │ │
-        │  │  IJiraClient │  │ITrelloClient│ │Client  │ │
-        │  │  JiraOptions │  │TrelloOptions│ │IGitHub │ │
-        │  │  Models/     │  │Models/     │  │Options │ │
-        │  └──────┬───────┘  └─────┬──────┘  └───┬────┘ │
-        └─────────┼────────────────┼──────────────┼──────┘
-                  │                │              │
-         ┌────────▼──────┐ ┌───────▼────┐ ┌──────▼────────┐
-         │  Jira Cloud   │ │   Trello   │ │  GitHub REST  │
-         │  REST API v3  │ │   API v1   │ │     API v3    │
-         └───────────────┘ └────────────┘ └───────────────┘
+        │  ┌──────────────┐  ┌────────────┐  ┌────────┐  ┌──────────────┐ │
+        │  │  JiraClient  │  │TrelloClient│  │GitHub  │  │Confluence    │ │
+        │  │  IJiraClient │  │ITrelloClient│ │Client  │  │Client        │ │
+        │  │  JiraOptions │  │TrelloOptions│ │IGitHub │  │IConfluence   │ │
+        │  │  Models/     │  │Models/     │  │Options │  │Options/Models│ │
+        │  └──────┬───────┘  └─────┬──────┘  └───┬────┘  └──────┬───────┘ │
+        └─────────┼────────────────┼──────────────┼──────────────┼─────────┘
+            │                │              │              │
+         ┌────────▼──────┐ ┌───────▼────┐ ┌──────▼────────┐ ┌───▼──────────┐
+         │  Jira Cloud   │ │   Trello   │ │  GitHub REST  │ │ Confluence   │
+         │  REST API v3  │ │   API v1   │ │     API v3    │ │ REST API     │
+         └───────────────┘ └────────────┘ └───────────────┘ └──────────────┘
 ```
 
 ---
@@ -62,13 +63,15 @@ The shared kernel. All HTTP communication, authentication, model definitions, an
 
 | Type | Responsibility |
 |------|----------------|
-| `ServiceCollectionExtensions` | `AddJiraClient`, `AddTrelloClient`, `AddGitHubClient` — registers typed `HttpClient` instances and binds options |
+| `ServiceCollectionExtensions` | `AddJiraClient`, `AddTrelloClient`, `AddGitHubClient`, `AddConfluenceClient` — registers typed `HttpClient` instances and binds options |
 | `JiraClient` / `IJiraClient` | Jira Cloud REST API v3 — projects, issues, transitions, comments |
 | `TrelloClient` / `ITrelloClient` | Trello API v1 — boards, lists, cards (CRUD) |
 | `GitHubClient` / `IGitHubClient` | GitHub REST API v3 — repositories, branches, commits, issues |
+| `ConfluenceClient` / `IConfluenceClient` | Confluence REST API — page update by page ID with storage-format body and version increment |
 | `JiraOptions` | `BaseUrl`, `Email`, `ApiToken` — section name `Jira` |
 | `TrelloOptions` | `ApiKey`, `Token` — section name `Trello` |
 | `GitHubOptions` | `Token`, `UserAgent` — section name `GitHub` |
+| `ConfluenceOptions` | `BaseUrl`, `Email`, `ApiToken` — section name `Confluence` |
 
 #### Authentication per service
 
@@ -77,13 +80,14 @@ The shared kernel. All HTTP communication, authentication, model definitions, an
 | Jira | HTTP Basic (`email:token` → Base64) | `Authorization: Basic …` |
 | Trello | OAuth 1.0 (key + token) | `Authorization: OAuth oauth_consumer_key="…", oauth_token="…"` |
 | GitHub | Bearer token | `Authorization: Bearer …` |
+| Confluence | HTTP Basic (`email:token` → Base64) | `Authorization: Basic …` |
 
 #### Configuration resolution
 
 `ServiceCollectionExtensions` resolves options in priority order:
 
-1. **Structured section** (`Jira:BaseUrl`, `Trello:ApiKey`, `GitHub:Token`, …) — preferred
-2. **Flat environment variable fallback** (`JIRA_BASE_URL`, `TRELLO_API_KEY`, `GITHUB_TOKEN`, …)
+1. **Structured section** (`Jira:BaseUrl`, `Trello:ApiKey`, `GitHub:Token`, `Confluence:BaseUrl`, …) — preferred
+2. **Flat environment variable fallback** (`JIRA_BASE_URL`, `TRELLO_API_KEY`, `GITHUB_TOKEN`, `CONFLUENCE_BASE_URL`, …)
 
 This allows both `appsettings.json`-based configuration (local development) and plain environment variable injection (Docker, CI/CD).
 
@@ -115,6 +119,13 @@ A standard ASP.NET Core REST API. All controllers are thin: they delegate entire
 | `RepositoriesController` | `/api/repositories` | `IGitHubClient` |
 | `HealthController` | `/api/health` | — |
 
+#### Minimal endpoints for smoke tests
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/version` | Returns service name and build version |
+| `/api/version` | Alias for `/version`, useful for API-prefixed probes |
+
 #### Cross-cutting concerns
 
 - **Swagger/OpenAPI** — generated from XML doc comments, versioned via `AssemblyInformationalVersion`
@@ -142,7 +153,7 @@ Response
 **Target:** `net10.0` (Console / `OutputType=Exe`)  
 **Transport:** stdio (standard Model Context Protocol convention)
 
-Exposes all three service integrations as **MCP tools** so AI assistants (GitHub Copilot, Claude Desktop, etc.) can invoke them directly.
+Exposes all four service integrations as **MCP tools** so AI assistants (GitHub Copilot, Claude Desktop, etc.) can invoke them directly.
 
 #### Tool classes
 
@@ -151,6 +162,7 @@ Exposes all three service integrations as **MCP tools** so AI assistants (GitHub
 | `JiraTools` | `get_projects`, `search_issues`, `get_issue`, `create_issue`, `transition_issue`, `add_comment` | `IJiraClient` |
 | `TrelloTools` | `get_boards`, `get_board`, `get_lists`, `get_cards`, `get_card`, `create_card`, `update_card`, `delete_card` | `ITrelloClient` |
 | `GitHubTools` | `list_repositories`, `get_repository`, `list_branches`, `list_commits`, `list_issues`, `get_github_issue`, `create_github_issue` | `IGitHubClient` |
+| `ConfluenceTools` | `update_confluence_document` | `IConfluenceClient` |
 
 Each tool class:
 - is decorated with `[McpServerToolType]`
@@ -161,7 +173,7 @@ Each tool class:
 
 ```csharp
 Host.CreateApplicationBuilder(args)
-    → AddJiraClient / AddTrelloClient / AddGitHubClient  (from Core)
+  → AddJiraClient / AddTrelloClient / AddGitHubClient / AddConfluenceClient  (from Core)
     → AddMcpServer().WithStdioServerTransport().WithToolsFromAssembly()
     → Build().RunAsync()
 ```
@@ -185,7 +197,7 @@ ProjectManagement.Api   ProjectManagement.Mcp
 Test projects:
 
 ```
-ProjectManagement.Api.Tests   → ProjectManagement.Core (via DI helpers)
+ProjectManagement.Api.Tests   → ProjectManagement.Api + ProjectManagement.Core (via DI helpers)
 ProjectManagement.Core.Tests  → ProjectManagement.Core
 ProjectManagement.Mcp.Tests   → ProjectManagement.Mcp + ProjectManagement.Core
 ```

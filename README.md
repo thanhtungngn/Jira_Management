@@ -12,6 +12,12 @@ This system integrates project management tools (Jira, GitHub, Trello) and expos
 
 It is evolving into an **AI-powered engineering platform** with documentation automation and knowledge system capabilities.
 
+### Latest Implemented Updates
+
+* ✅ MCP tool `update_confluence_document` is available to update existing Confluence pages by page ID.
+* ✅ Core Confluence integration is available via `ConfluenceClient`, `IConfluenceClient`, and `AddConfluenceClient`.
+* ✅ API version endpoints are available for quick smoke testing: `/version` and `/api/version`.
+
 ---
 
 # 🌐 Final Architecture (Annotated)
@@ -37,7 +43,7 @@ It is evolving into an **AI-powered engineering platform** with documentation au
 │ ✅ Controllers          │   │ ✅ JiraTools                 │   │ 🚧 Command Handler      │
 │ ✅ Routing              │   │ ✅ TrelloTools               │   │ 🚧 LLM Integration      │
 │ ❌ Auth / Rate Limit    │   │ ✅ GitHubTools               │   │ 🚧 MCP Client           │
-│ 🚧 Doc Endpoint         │   │ 🚧 DocumentationTools        │   │                        │
+│ ✅ Version Endpoints     │   │ ✅ ConfluenceTools           │   │                        │
 └──────────────┬─────────┘   └──────────────┬───────────────┘   └──────────────┬─────────┘
                │                            │                                  │
                └──────────────┬─────────────┴──────────────┬───────────────────┘
@@ -66,6 +72,7 @@ It is evolving into an **AI-powered engineering platform** with documentation au
 │ ✅ JiraClient / IJiraClient                                                  │
 │ ✅ TrelloClient / ITrelloClient                                              │
 │ ✅ GitHubClient / IGitHubClient                                              │
+│ ✅ ConfluenceClient / IConfluenceClient                                      │
 │ ✅ Models / Options                                                          │
 │ ✅ Dependency Injection Extensions                                           │
 └──────────────┬───────────────────────────────┬───────────────────────────────┘
@@ -172,7 +179,7 @@ Containers:
 JiraTools        ✅
 GitHubTools      ✅
 TrelloTools      ✅
-DocumentationTools 🚧
+ConfluenceTools  ✅
         ↓
 DocOrchestrator 🚧
 ```
@@ -209,7 +216,7 @@ MCP Client
 
 ## Phase 2
 
-* MCP tool: generate docs
+* MCP tool: generate docs (Confluence update tool implemented)
 
 ## Phase 3
 

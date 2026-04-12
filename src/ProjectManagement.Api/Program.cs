@@ -85,6 +85,19 @@ if (app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 app.UseAuthorization();
+
+app.MapGet("/version", () => Results.Ok(new
+{
+    service = "ProjectManagement.Api",
+    version = appVersion,
+}));
+
+app.MapGet("/api/version", () => Results.Ok(new
+{
+    service = "ProjectManagement.Api",
+    version = appVersion,
+}));
+
 app.MapControllers();
 
 app.Run();

@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using ProjectManagement.Core.Confluence;
 using ProjectManagement.Core.GitHub;
 using ProjectManagement.Core.Jira;
 using ProjectManagement.Core.Trello;
@@ -133,6 +134,50 @@ public static class ServiceCollectionExtensions
                 new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
             client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
             client.DefaultRequestHeaders.UserAgent.ParseAdd(opts.UserAgent);
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the Confluence HTTP client and binds <see cref="ConfluenceOptions"/> from
+    /// <c>configuration["Confluence"]</c>. Falls back to flat keys
+    /// <c>CONFLUENCE_BASE_URL</c>, <c>CONFLUENCE_EMAIL</c>, and <c>CONFLUENCE_API_TOKEN</c>.
+    /// </summary>
+    public static IServiceCollection AddConfluenceClient(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.Configure<ConfluenceOptions>(opts =>
+        {
+            var section = configuration.GetSection(ConfluenceOptions.SectionName);
+            if (section.Exists())
+            {
+                section.Bind(opts);
+            }
+            else
+            {
+                opts.BaseUrl  = configuration["CONFLUENCE_BASE_URL"]  ?? string.Empty;
+                opts.Email    = configuration["CONFLUENCE_EMAIL"]     ?? string.Empty;
+                opts.ApiToken = configuration["CONFLUENCE_API_TOKEN"] ?? string.Empty;
+            }
+        });
+
+        services.AddHttpClient<IConfluenceClient, ConfluenceClient>((sp, client) =>
+        {
+            var opts = sp.GetRequiredService<IOptions<ConfluenceOptions>>().Value;
+
+            if (string.IsNullOrWhiteSpace(opts.BaseUrl))
+                throw new InvalidOperationException("Confluence BaseUrl is required (Confluence:BaseUrl or CONFLUENCE_BASE_URL).");
+            if (string.IsNullOrWhiteSpace(opts.Email))
+                throw new InvalidOperationException("Confluence Email is required (Confluence:Email or CONFLUENCE_EMAIL).");
+            if (string.IsNullOrWhiteSpace(opts.ApiToken))
+                throw new InvalidOperationException("Confluence ApiToken is required (Confluence:ApiToken or CONFLUENCE_API_TOKEN).");
+
+            var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{opts.Email}:{opts.ApiToken}"));
+            client.BaseAddress = new Uri(opts.BaseUrl.TrimEnd('/') + "/wiki/rest/api/");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         });
 
         return services;
