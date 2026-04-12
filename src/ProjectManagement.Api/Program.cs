@@ -12,7 +12,8 @@ builder.Services.AddControllers();
 builder.Services
     .AddJiraClient(builder.Configuration)
     .AddTrelloClient(builder.Configuration)
-    .AddGitHubClient(builder.Configuration);
+    .AddGitHubClient(builder.Configuration)
+    .AddConfluenceClient(builder.Configuration);
 
 var appVersion = Assembly.GetExecutingAssembly()
     .GetCustomAttribute<AssemblyInformationalVersionAttribute>()

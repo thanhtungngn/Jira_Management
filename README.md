@@ -12,11 +12,21 @@ This system integrates project management tools (Jira, GitHub, Trello) and expos
 
 It is evolving into an **AI-powered engineering platform** with documentation automation and knowledge system capabilities.
 
+### REST Route Groups
+
+* Jira: `/api/jira/projects`, `/api/jira/issues`
+* Trello: `/api/trello/boards`, `/api/trello/cards/{cardId}`
+* GitHub: `/api/github/repositories`, `/api/github/repositories/{owner}/{repo}`
+* Confluence: `/api/confluence/pages/{pageId}`
+
+Legacy routes (`/api/projects`, `/api/issues`, `/api/boards`, `/api/cards`, `/api/repositories`) are still supported for compatibility.
+
 ### Latest Implemented Updates
 
 * ✅ MCP tool `update_confluence_document` is available to update existing Confluence pages by page ID.
 * ✅ Core Confluence integration is available via `ConfluenceClient`, `IConfluenceClient`, and `AddConfluenceClient`.
 * ✅ API version endpoints are available for quick smoke testing: `/version` and `/api/version`.
+* ✅ REST API now has grouped routes by platform: `/api/jira/*`, `/api/trello/*`, `/api/github/*`, `/api/confluence/*`.
 
 ---
 

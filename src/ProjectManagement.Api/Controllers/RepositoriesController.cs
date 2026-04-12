@@ -6,7 +6,8 @@ namespace ProjectManagement.Api.Controllers;
 
 /// <summary>Endpoints for browsing GitHub repositories, branches, commits, and issues.</summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/repositories")]
+[Route("api/github/repositories")]
 [Produces("application/json")]
 public class RepositoriesController : ControllerBase
 {

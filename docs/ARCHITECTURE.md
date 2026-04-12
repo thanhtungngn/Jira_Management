@@ -112,11 +112,10 @@ A standard ASP.NET Core REST API. All controllers are thin: they delegate entire
 
 | Controller | Route prefix | Backing client |
 |------------|-------------|----------------|
-| `ProjectsController` | `/api/projects` | `IJiraClient` |
-| `IssuesController` | `/api/issues` | `IJiraClient` |
-| `BoardsController` | `/api/boards` | `ITrelloClient` |
-| `CardsController` | `/api/cards` | `ITrelloClient` |
+| `JiraController` | `/api/jira/*` (legacy: `/api/projects`, `/api/issues`) | `IJiraClient` |
+| `TrelloController` | `/api/trello/*` (legacy: `/api/boards`, `/api/cards`) | `ITrelloClient` |
 | `RepositoriesController` | `/api/repositories` | `IGitHubClient` |
+| `ConfluenceController` | `/api/confluence/pages` | `IConfluenceClient` |
 | `HealthController` | `/api/health` | — |
 
 #### Minimal endpoints for smoke tests
@@ -125,6 +124,18 @@ A standard ASP.NET Core REST API. All controllers are thin: they delegate entire
 |----------|---------|
 | `/version` | Returns service name and build version |
 | `/api/version` | Alias for `/version`, useful for API-prefixed probes |
+
+#### Platform-grouped route aliases
+
+To make the API surface easier to discover by product area, every domain now has a grouped route prefix.
+Legacy routes are still supported for backward compatibility.
+
+| Platform | Grouped prefix | Example |
+|----------|----------------|---------|
+| Jira | `/api/jira` | `/api/jira/projects`, `/api/jira/issues` |
+| Trello | `/api/trello` | `/api/trello/boards`, `/api/trello/cards/{cardId}` |
+| GitHub | `/api/github` | `/api/github/repositories`, `/api/github/repositories/{owner}/{repo}` |
+| Confluence | `/api/confluence` | `/api/confluence/pages/{pageId}` |
 
 #### Cross-cutting concerns
 
@@ -210,7 +221,7 @@ ProjectManagement.Mcp.Tests   → ProjectManagement.Mcp + ProjectManagement.Core
 Client
   │  GET /api/issues?projectKey=PROJ&status=Open
   ▼
-IssuesController.SearchIssues(request)
+JiraController.SearchIssues(request)
   │  _logger.LogInformation(...)
   ▼
 IJiraClient.SearchIssuesAsync(request)
