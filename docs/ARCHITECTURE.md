@@ -135,7 +135,7 @@ Legacy routes are still supported for backward compatibility.
 | Jira | `/api/jira` | `/api/jira/projects`, `/api/jira/issues` |
 | Trello | `/api/trello` | `/api/trello/boards`, `/api/trello/cards/{cardId}` |
 | GitHub | `/api/github` | `/api/github/repositories`, `/api/github/repositories/{owner}/{repo}` |
-| Confluence | `/api/confluence` | `/api/confluence/pages/{pageId}` |
+| Confluence | `/api/confluence` | `/api/confluence/pages/{pageId}`, `/api/confluence/pages/{pageId}/children`, `/api/confluence/pages/{pageId}/move`, `/api/confluence/pages/folders` |
 
 #### Cross-cutting concerns
 
@@ -173,7 +173,7 @@ Exposes all four service integrations as **MCP tools** so AI assistants (GitHub 
 | `JiraTools` | `get_projects`, `search_issues`, `get_issue`, `create_issue`, `transition_issue`, `add_comment` | `IJiraClient` |
 | `TrelloTools` | `get_boards`, `get_board`, `get_lists`, `get_cards`, `get_card`, `create_card`, `update_card`, `delete_card` | `ITrelloClient` |
 | `GitHubTools` | `list_repositories`, `get_repository`, `list_branches`, `list_commits`, `list_issues`, `get_github_issue`, `create_github_issue` | `IGitHubClient` |
-| `ConfluenceTools` | `update_confluence_document` | `IConfluenceClient` |
+| `ConfluenceTools` | `create_confluence_page`, `create_confluence_folder`, `get_confluence_page`, `get_confluence_children`, `move_confluence_page`, `update_confluence_document`, `delete_confluence_page` | `IConfluenceClient` |
 
 Each tool class:
 - is decorated with `[McpServerToolType]`
